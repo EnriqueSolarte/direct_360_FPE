@@ -3,7 +3,7 @@ import glob
 import numpy as np
 from tqdm import tqdm
 from utils.camera_models.sphere import Sphere
-from utils.enum import Enum
+from utils.enum import *
 from src.data_structure import CamPose
 from utils.io import *
 from utils.geometry_utils import get_bearings_from_phi_coords, extend_array_to_homogeneous
@@ -76,7 +76,7 @@ class DataManager:
         self.poses_gt = np.stack(
             list(read_trajectory(gt_poses_file).values()))[idx, :, :]
 
-    def get_list_ly(self, cam_ref=Enum.cam_ref.CC):
+    def get_list_ly(self, cam_ref=CAM_REF.CC):
         """
         Returns a list of layouts (Layout class) for the scene 
         """
@@ -107,9 +107,9 @@ class DataManager:
             pcl = ly_scale * bearings
 
             
-            if cam_ref == Enum.cam_ref.WC_SO3:
+            if cam_ref == Enum.CAM_REF.WC_SO3:
                 pcl = pose_est.rot @ pcl
-            elif cam_ref == Enum.cam_ref.WC:
+            elif cam_ref == Enum.CAM_REF.WC:
                 pcl = pose_est.SE3_scaled()[0:3, :] @ extend_array_to_homogeneous(pcl)
                 
             # > Projecting PCL into zero-plane

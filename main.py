@@ -11,7 +11,7 @@ def main(config_file):
     dt = DataManager(cfg)
     fpe = DirectFloorPlanEstimation(dt)
     vis = Visualization(fpe)
-    list_ly = dt.get_list_ly(cam_ref=Enum.cam_ref.WC_SO3)
+    list_ly = dt.get_list_ly(cam_ref=Enum.CAM_REF.WC_SO3)
     
     for ly in list_ly:
         fpe.estimate(ly)
