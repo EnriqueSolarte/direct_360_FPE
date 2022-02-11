@@ -1,0 +1,37 @@
+
+scene: "i5noydFURQK"
+scene_version: "0"
+
+scene: "2t7WUuJeko7"
+scene_version: "0"
+
+# scene: "i5noydFURQK"
+# scene_version: "1"
+
+# scene: "Z6MFQCViBuw"
+# scene_version: "0"
+
+# scene: "PuKPg4mmafe"
+# scene_version: "0"
+
+ly_model: 'hn_mp3d'
+depth_model: 'bifuse'
+
+ly_scale: 1
+vo_scale: 2
+
+resolution: [512, 1024]
+
+# ! Boundary Clipper
+clipper.radius: 3
+
+# ! Scale Recovering Parameters
+scale_recover.max_vo_scale: 3
+scale_recover.min_vo_scale: 0.01
+scale_recover.sliding_windows: 10
+scale_recover.initial_batch: 10
+scale_recover.coarse_levels: 4
+scale_recover.scale_step: 0.01
+scale_recover.min_scale_variance: 0.01
+scale_recover.grid_size: 0.1 
+scale_recover.max_loops_iterations: 2
