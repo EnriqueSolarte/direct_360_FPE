@@ -10,23 +10,12 @@ def main(config_file):
     cfg = read_config(config_file=config_file)
     dt = DataManager(cfg)
     fpe = DirectFloorPlanEstimation(dt)
-    vis = Visualization(fpe)
     list_ly = dt.get_list_ly(cam_ref=Enum.cam_ref.WC_SO3)
+    plot_color_plc(np.hstack([ly.boundary for ly in list_ly]).T)
     
-    for ly in list_ly:
-        fpe.estimate(ly)
-        vis.update()
-                
-    list_rooms_est = fpe.list_rooms
-    list_rooms_gt = dt.get_list_rooms_gt()
     
-    evaluate(list_rooms_est, list_rooms_gt)
-    plot_2d_fpe(list_rooms_est)
-    plot_2d_fpe(list_rooms_gt)
     
-    plot_3D_FPE(list_rooms_est)
-    plot_3D_FPE(list_rooms_gt)
-    
+    print('done')
 
 
 if __name__ == '__main__':
