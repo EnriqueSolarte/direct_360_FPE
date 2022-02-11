@@ -1,4 +1,9 @@
 
+# ! Scene Information
+eval_version: "re-implementation"
+scene_category: "SINGLE_ROOM_SCENES"
+scene_category: "MULTI_ROOM_SCENES"
+
 scene: "i5noydFURQK"
 scene_version: "0"
 
@@ -14,16 +19,34 @@ scene_version: "0"
 # scene: "PuKPg4mmafe"
 # scene_version: "0"
 
-ly_model: 'hn_mp3d'
-depth_model: 'bifuse'
-
+# ! data Information
+ly_model: 'hn_mp3d'\
 ly_scale: 1
-vo_scale: 2
+vo_scale: 1
+image_resolution: [512, 1024]
 
-resolution: [512, 1024]
+#! Plane  Estimation
+plane_estimation.min_inliers_ratio: 0.99
+plane_estimation.max_ransac_trials: 500
+plane_estimation.min_ransac_residuals: 0.03
+plane_estimation.ransac_prob_success: 0.999
 
-# ! Boundary Clipper
-clipper.radius: 3
+
+# ! Plane Orientation Estimation
+theta_estimation.min_explainability_ratio: 0.8
+theta_estimation.initial_sigma: 360
+theta_estimation.max_clearance: 30
+theta_estimation.error_allowed: 1
+theta_estimation.common_sigma: 30
+theta_estimation.sigma_reduction: 1.01
+theta_estimation.penalty: 0.5
+
+# ! Room Identification
+room_id.grid_size: 0.1
+room_id.room_size: 3
+room_id.neighbor_distance: 5
+room_id.min_kf_pre_room: 3
+room_id.ocg_threshold: 0.5
 
 # ! Scale Recovering Parameters
 scale_recover.max_vo_scale: 3
