@@ -20,7 +20,7 @@ scene_version: "0"
 # scene_version: "0"
 
 # ! data Information
-ly_model: 'hn_mp3d'\
+ly_model: 'hn_mp3d'
 ly_scale: 1
 vo_scale: 1
 image_resolution: [512, 1024]

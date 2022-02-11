@@ -1,16 +1,11 @@
 import os
 import glob
 import numpy as np
-from data_manager.data_depth import Depth
-from data_manager.data_layout import Layout
 from utils.io import *
 from tqdm import tqdm
-from .data_pose import CamPose
-from .data_frame import Frame
 from utils.geometry_utils import get_bearings_from_phi_coords
 from utils.geometry_utils import extend_array_to_homogeneous
 from utils.camera_models.sphere import Sphere
-from utils.clipper_boundary import ClipperBoundary
 from imageio import imread
 from utils import ScaleRecover
 
@@ -21,9 +16,6 @@ class DataManager:
         self.set_paths()
         self.load_data()
         self.list_frames = []
-        self.scale_recover = ScaleRecover(self)
-        self.clipper = ClipperBoundary(self)
-
         print("DataManager successfully loaded...")
 
     def set_paths(self):
@@ -48,16 +40,13 @@ class DataManager:
         #! List of LY estimations
         self.list_ly_npy = [os.path.join(self.vo_dir, self.cfg['ly_model'], f'{f}.npy') for f in self.kf_list]
 
-        # ! List of Depth estimations
-        self.list_depth_npy = [os.path.join(self.cfg['bifuse_depth_dir'], f'{f}.npy') for f in self.kf_list]
-
         # ! List of RGB images
         self.list_rgb_img = [os.path.join(self.mp3d_fpe_dir, f'rgb/{f}.png') for f in self.kf_list]
 
         # !List of DepthGT maps
         self.list_depth_maps = [os.path.join(self.mp3d_fpe_dir, f'depth/tiff/{f}.tiff') for f in self.kf_list]
 
-        self.cam = Sphere(shape=self.cfg['resolution'])
+        self.cam = Sphere(shape=self.cfg['image_resolution'])
 
     def load_camera_poses(self):
         """
