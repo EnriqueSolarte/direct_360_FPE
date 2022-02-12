@@ -357,13 +357,13 @@ class Patch:
 
 
 class OCGPatch:
-    def __init__(self, cfg):
-        self.cfg = cfg
+    def __init__(self, data_manager):
+        self.dt = data_manager
         self.v_bins = None
         self.u_bins = None
         self.ocg_map = None
         self.list_ly = []
-        self.grid_size = self.cfg.params.roomi_ocg_grid_size  # TODO A explicit param is better
+        self.grid_size = self.dt.cfg['room_id.grid_size']  # TODO A explicit param is better
         # self.padding = self.cfg.params.ocg_padding
         # self.pdf = None
         self.list_patch = []
@@ -377,7 +377,7 @@ class OCGPatch:
         Returns a 2D map (Patch) given a layout
         """
 
-        boundary = layout.get_closest_boundnary_pts(self.cfg.params.sampling_boundary)
+        boundary = layout.get_closest_boundnary_pts(self.dt.params.sampling_boundary)
         # ! If there are not enough points in the boundary the None is returned above
         if boundary is None:
             boundary = layout.pose.t.reshape((3, 1))
@@ -401,7 +401,7 @@ class OCGPatch:
 
         if self.dynamic_bins:
             # ! When any point in the current boundary exceed the current grid
-            reduced_padding = self.cfg.params.ocg_padding
+            reduced_padding = self.dt.params.ocg_padding
             max_bound = np.max(boundary, axis=1)
             min_bound = np.min(boundary, axis=1)
 
@@ -451,11 +451,11 @@ class OCGPatch:
         :type boundary: [type]
         """
 
-        patch = Patch(self.cfg)
+        patch = Patch(self.dt)
         patch.u_bins, patch.v_bins = compute_uv_bins(
             pcl=boundary,
-            grid_size=self.cfg.params.roomi_ocg_grid_size,
-            padding=self.cfg.params.ocg_padding
+            grid_size=self.dt.params.roomi_ocg_grid_size,
+            padding=self.dt.params.ocg_padding
         )
 
         h, w = patch.v_bins.size-1, patch.u_bins.size - 1
@@ -496,7 +496,7 @@ class OCGPatch:
         # plt.imshow(map_2d)
         # plt.show()
 
-        patch = Patch(self.cfg)
+        patch = Patch(self.dt)
         patch.map = map_2d
         patch.uv = uv
         patch.boundary = boundary
@@ -548,10 +548,10 @@ class OCGPatch:
 
     def get_mask_by_threshold(self, ocg_map=None):
         
-        if self.cfg.forced_thr_room_id is None:
-            threshold = self.cfg.params.patches_room_threshold
+        if self.dt.forced_thr_room_id is None:
+            threshold = self.dt.params.patches_room_threshold
         else:
-            threshold = self.cfg.forced_thr_room_id
+            threshold = self.dt.forced_thr_room_id
         if ocg_map is not None:
             tmp = ocg_map/np.max(ocg_map)
             # mask = tmp > self.cfg.params.patches_room_threshold
@@ -571,11 +571,11 @@ class OCGPatch:
         Returns a mask OCG (same size that ocg_map) describing the valid pixel in the current ocg_map
         """
         # ! So far our best policy is to define the threshold as mean of non-zero values. (valid pixels in the final patch)
-        flag = self.cfg.params.mask_in_patches
-        if self.cfg.forced_thr_room_id is None:
-            threshold = self.cfg.params.patches_room_threshold
+        flag = self.dt.params.mask_in_patches
+        if self.dt.forced_thr_room_id is None:
+            threshold = self.dt.params.patches_room_threshold
         else:
-            threshold = self.cfg.forced_thr_room_id
+            threshold = self.dt.forced_thr_room_id
             
         if flag == Enum.PATCH_THR_CONST:
             tmp = self.ocg_map/np.max(self.ocg_map)
@@ -602,8 +602,8 @@ class OCGPatch:
 
         min_points = np.min(bins, axis=0)[0:2]
         max_points = np.max(bins, axis=0)[2:4]
-        self.u_bins = np.mgrid[min_points[0]:max_points[0]+self.cfg.params.roomi_ocg_grid_size: self.cfg.params.roomi_ocg_grid_size]
-        self.v_bins = np.mgrid[min_points[1]:max_points[1]+self.cfg.params.roomi_ocg_grid_size: self.cfg.params.roomi_ocg_grid_size]
+        self.u_bins = np.mgrid[min_points[0]:max_points[0]+self.dt.params.roomi_ocg_grid_size: self.dt.params.roomi_ocg_grid_size]
+        self.v_bins = np.mgrid[min_points[1]:max_points[1]+self.dt.params.roomi_ocg_grid_size: self.dt.params.roomi_ocg_grid_size]
         return self.u_bins, self.v_bins
 
     def add_measurements(self, list_ly):

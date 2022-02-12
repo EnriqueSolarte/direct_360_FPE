@@ -9,11 +9,15 @@ from utils.io import *
 from utils.geometry_utils import get_bearings_from_phi_coords, extend_array_to_homogeneous
 from src.data_structure import Layout
 
+
 class DataManager:
     def __init__(self, cfg):
         self.cfg = cfg
         self.set_paths()
         self.load_data()
+        
+        self.list_ly = []
+        
         print("DataManager successfully loaded...")
         print(f"Scene Category: {self.cfg['scene_category']}")
         print(f"Scene: {self.scene_name}")
@@ -90,7 +94,6 @@ class DataManager:
             pose_gt = CamPose(self, pose=self.poses_gt[idx])
             pose_gt.idx = idx
 
-
             # * Every npy file content data estimated from CNN layout estimation in camera coordinates
             # *(NO WC--> no world coordinates)
             data_ly = np.load(self.list_ly_npy[idx])
@@ -106,12 +109,11 @@ class DataManager:
             # pcl = (1-pose.t[1])*ly_scale * bearings
             pcl = ly_scale * bearings
 
-            
-            if cam_ref == Enum.CAM_REF.WC_SO3:
+            if cam_ref == CAM_REF.WC_SO3:
                 pcl = pose_est.rot @ pcl
-            elif cam_ref == Enum.CAM_REF.WC:
+            elif cam_ref == CAM_REF.WC:
                 pcl = pose_est.SE3_scaled()[0:3, :] @ extend_array_to_homogeneous(pcl)
-                
+
             # > Projecting PCL into zero-plane
             pcl[1, :] = 0  # TODO verify if this is really needed
 

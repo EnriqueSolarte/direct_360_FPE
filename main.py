@@ -10,6 +10,7 @@ def main(config_file):
     cfg = read_config(config_file=config_file)
     dt = DataManager(cfg)
     fpe = DirectFloorPlanEstimation(dt)
+    fpe.initialize()
     vis = Visualization(fpe)
     list_ly = dt.get_list_ly(cam_ref=Enum.CAM_REF.WC_SO3)
     

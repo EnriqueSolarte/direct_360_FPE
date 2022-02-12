@@ -7,8 +7,8 @@ from config import *
 
 
 class GT_ScaleRecover:
-    def __init__(self, cfg):
-        self.cfg = cfg
+    def __init__(self, data_manager):
+        self.dt = data_manager
         self.gt_poses = None
         self.gt_scale = None
 

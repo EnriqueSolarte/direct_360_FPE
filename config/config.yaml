@@ -8,7 +8,7 @@ scene: "i5noydFURQK"
 scene_version: "0"
 
 scene: "2t7WUuJeko7"
-scene_version: "0"
+scene_version: "1"
 
 # scene: "i5noydFURQK"
 # scene_version: "1"
@@ -58,3 +58,4 @@ scale_recover.scale_step: 0.01
 scale_recover.min_scale_variance: 0.01
 scale_recover.grid_size: 0.1 
 scale_recover.max_loops_iterations: 2
+scale_recover.ratio_for_initialization: 0.2

@@ -8,13 +8,12 @@ from .gt_scale_recover import GT_ScaleRecover
 class ScaleRecover:
     def __init__(self, data_manager):
         self.dt = data_manager
-        self.cfg = data_manager.cfg
         self.hist_escales = []
         self.hist_vo_scales = []
 
         self.internal_idx = 0
-        self.vo_scale_recover = VO_ScaleRecover(self.cfg)
-        self.gt_scale_recover = GT_ScaleRecover(self.cfg)
+        self.vo_scale_recover = VO_ScaleRecover(self.dt)
+        self.gt_scale_recover = GT_ScaleRecover(self.dt)
         self.vo_scale = 1
         self.gt_scale = 1
         self.list_ly = None
