@@ -3,7 +3,9 @@ from src.scale_recover import ScaleRecover
 from src.solvers.theta_estimator import ThetaEstimator
 from src.solvers.plane_estimator import PlaneEstimator
 from src.data_structure import OCGPatch
-from utils.enum import CAM_REF
+from .data_structure import Room
+from utils.geometry_utils import find_N_peaks
+import numpy as np
 
 
 class DirectFloorPlanEstimation:
@@ -20,7 +22,7 @@ class DirectFloorPlanEstimation:
         self.list_rooms = []
 
         self.curr_room = None
-        self.initialized = False
+        self.is_initialized = False
 
         print("DirectFloorPlanEstimation initialized successfully")
 
@@ -28,42 +30,70 @@ class DirectFloorPlanEstimation:
         """
         It add the passed Layout to the systems and estimated the floor plan
         """
-        
-        if not self.initialized:
-            self.initialize()
+
+        if not self.is_initialized:
+            self.initialize(layout)
             return
 
         self.list_ly.append(layout)
-        
+
         self.apply_vo_scale(layout)
         self.compute_planes(layout)
-        
+        return
+
         if self.eval_new_room_creteria(layout):
             self.curr_room = self.select_room(layout)
             if self.curr_room is None:
                 # ! New Room in the system
                 self.curr_room = Room(self.dt)
-                
+
                 if not self.curr_room.initialize(layout):
                     return
-                
-        if not self.curr_room.initialized:
+
+        if not self.curr_room.is_initialized:
             if not self.curr_room.initialize(layout):
                 return
 
-
-        self.list_ly.append(layout)
         self.update_ocg()
         self.eval_ocg_overlapping()
 
-    def initialize(self):
+    def initialize(self, layout):
         """
         Initializes the system
         """
-        # ! getting few lys for initialize scale
-        list_ly = self.dt.get_list_ly(
-            cam_ref=CAM_REF.WC_SO3,
-            ratio=self.dt.cfg['scale_recover.ratio_for_initialization']
-        )
+        if self.scale_recover.estimate_vo_scale():
+            # ! Create very first Room
+            self.curr_room = Room(self.dt)
+            self.list_rooms.append(self.curr_room)
+            self.curr_room.list_ly.append(layout)
 
-        pass
+            self.curr_room.is_initialized = True
+            # TODO initialize room ID
+            # TODO initialize OCG local and global?
+            self.is_initialized = True
+
+    def apply_vo_scale(self, layout):
+        """
+        Applies VO-scale to the passed layout
+        """
+        layout.apply_vo_scale(self.scale_recover.vo_scale)
+        print(f"VO-scale {self.scale_recover.vo_scale} applied to Layout {layout.idx}")
+
+    def compute_planes(self, layout):
+        """
+        Computes Planes in the passed layout
+        """
+        corn_idx, _ = find_N_peaks(layout.ly_data[2, :], r=100)
+
+        pl_hypotheses = [layout.boundary[:, corn_idx[i]:corn_idx[i + 1]] for i in range(len(corn_idx) - 1)]
+        pl_hypotheses.append(np.hstack((layout.boundary[:, corn_idx[-1]:], layout.boundary[:, 0:corn_idx[0]])))
+
+        list_pl = []
+        for pl_h in pl_hypotheses:
+            pl, flag_success = self.plane_estimator.estimate_plane(pl_h)
+            if not flag_success:
+                continue
+
+            list_pl.append(pl)
+
+        layout.list_pl = list_pl

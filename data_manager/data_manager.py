@@ -85,14 +85,14 @@ class DataManager:
         Returns a list of layouts (Layout class) for the scene 
         """
         list_ly = []
-        for idx_kf in tqdm(self.list_kf, desc="...Loading Layouts"):
+        for idx_kf in tqdm(self.list_kf, desc="Loading Layouts..."):
             idx = self.list_kf.index(idx_kf)
 
             pose_est = CamPose(self, pose=self.poses_est[idx])
-            pose_est.idx = idx
+            pose_est.idx = idx_kf
 
             pose_gt = CamPose(self, pose=self.poses_gt[idx])
-            pose_gt.idx = idx
+            pose_gt.idx = idx_kf
 
             # * Every npy file content data estimated from CNN layout estimation in camera coordinates
             # *(NO WC--> no world coordinates)
@@ -100,8 +100,12 @@ class DataManager:
             # > data[0] is floor
             # > data[1] is ceiling,
             # > data[2] are corners
-
+            # ! Note: HorizonNet defines in other reference floor & ceiling (sign are different)
+            # ! Possible BUG in HorizonNet floor--> ceiling
+            data_ly[(0, 1), :] = -data_ly[(1, 0), :]
+            
             bearings_phi = data_ly[0, :]
+            
             bearings = get_bearings_from_phi_coords(phi_coords=bearings_phi)
 
             # !Projecting bearing to 3D as pcl --> boundary
@@ -115,7 +119,7 @@ class DataManager:
                 pcl = pose_est.SE3_scaled()[0:3, :] @ extend_array_to_homogeneous(pcl)
 
             # > Projecting PCL into zero-plane
-            pcl[1, :] = 0  # TODO verify if this is really needed
+            # pcl[1, :] = 0  # TODO verify if this is really needed
 
             ly = Layout(self)
             ly.bearings = bearings
@@ -125,7 +129,8 @@ class DataManager:
             ly.idx = pose_est.idx
             ly.ly_data = data_ly
             ly.cam_ref = cam_ref
-            ly.estimate_height_ratio()
+            # ly.estimate_height_ratio()
             list_ly.append(ly)
 
+        self.list_ly = list_ly
         return list_ly

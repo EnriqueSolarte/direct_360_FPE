@@ -6,6 +6,7 @@ class PlaneEstimator:
     def __init__(self, data_manager):
         self.dt = data_manager
 
+    def estimate_plane(self, pcl_boundaries):
         self.number_samples = None
         self.best_model = None
         self.best_evaluation = np.inf
@@ -13,18 +14,13 @@ class PlaneEstimator:
         self.best_inliers_num = 0
         self.counter_trials = 0
 
-        # self.pose = pose
-        # self.idx = idx
-        # self.label_ref = label_ref
-
-    def estimate_plane(self, pcl_boundaries):
         assert pcl_boundaries.shape[0] == 3
         if pcl_boundaries.shape[1] < 50:
             return -1, False
         self.number_samples = pcl_boundaries.shape[1]
         random_state = np.random.RandomState(1000)
 
-        max_trials = self.dt.params.max_ransac_trials
+        max_trials = self.dt.cfg["plane_estimation.max_ransac_trials"]
         for self.counter_trials in range(max_trials):
             initial_inliers = random_state.choice(self.number_samples, 2, replace=False)
 
@@ -44,11 +40,10 @@ class PlaneEstimator:
             # print("ratio", pcl_boundaries.shape[1])
             # * Selection
             # factor = self.pose.ly_size * self.cfg.params.factor_size
-            factor = np.linalg.norm(pcl_boundaries[:, -1] - pcl_boundaries[:, 0]) * self.dt.params.factor_size
             # factor = (1024*factor/pcl_boundaries.shape[1]) * self.cfg.params.factor_size
             # print("ratio", factor)
 
-            sample_inliers = abs(sample_residuals) < self.dt.params.min_ransac_residuals * factor
+            sample_inliers = abs(sample_residuals) < self.dt.cfg['plane_estimation.min_ransac_residuals']
             sample_inliers_num = np.sum(sample_inliers)
 
             # * Loop Control
@@ -66,28 +61,16 @@ class PlaneEstimator:
                 break
 
         explained_ratio = self.best_inliers_num / self.number_samples
-        if self.dt.forced_inliers_ratio is None:
-            if explained_ratio < self.dt.params.min_inliers_ratio:
-                return -1, False
-        else:
-            if explained_ratio < self.dt.forced_inliers_ratio:
-                return -1, False
-
-        from layout_features import Plane
+        if explained_ratio < self.dt.cfg["plane_estimation.min_inliers_ratio"]:
+            return -1, False
 
         distance = np.linalg.norm(self.best_model)
         normal = self.best_model / distance
 
+        from ..data_structure.plane import Plane
+
         # * Defining a PL feature
-        pl = Plane.from_distance_and_normal(dist=distance, normal=normal, cfg=self.dt)
-
-        # # ! Masking out plane estimation far from camera coordinates
-        # clossest_pcl = self.get_closest_pcl(pcl_boundaries[:, self.best_inliers])
-        # if clossest_pcl is None:
-        #     return -1, False
-
-        # if np.abs(pl.distance - self.pose.t.dot(pl.normal)) > self.cfg.params.min_distance_to_plane*self.pose.scale:
-        #     return -1, False
+        pl = Plane.from_distance_and_normal(dist=distance, normal=normal, dt=self.dt)
 
         pl.boundary = pcl_boundaries[:, self.best_inliers]
         # pl.boundary = pl.get_sampled_boundary()
@@ -99,10 +82,6 @@ class PlaneEstimator:
         # pl.boundary = pl.boundary[:, mask]
 
         pl.explained_ratio = explained_ratio
-        pl.pose = self.pose
-        pl.pose.state = Enum.IN_SCALE
-        # pl.idx = self.idx
-        pl.label_ref = self.label_ref
         pl.compute_position()
 
         return pl, True
@@ -128,7 +107,7 @@ class PlaneEstimator:
         if self.best_inliers_num == 0:
             return np.inf
 
-        nom = 1 - self.dt.params.ransac_prob_success
+        nom = 1 - self.dt.cfg['plane_estimation.ransac_prob_success']
         if nom == 0:
             return np.inf
 

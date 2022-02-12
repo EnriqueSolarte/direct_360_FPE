@@ -1,4 +1,21 @@
 import numpy as np
+from scipy.ndimage.filters import maximum_filter
+
+
+def find_N_peaks(signal, r=29, min_v=0.05, N=None):
+    """
+    Computs the most likely corners from estimated corners distribution in HorizonNet
+    Function toke it from HorizonNet implementation 
+    """
+    max_v = maximum_filter(signal, size=r, mode='wrap')
+    pk_loc = np.where(max_v == signal)[0]
+    pk_loc = pk_loc[signal[pk_loc] > min_v]
+    if N is not None:
+        order = np.argsort(-signal[pk_loc])
+        pk_loc = pk_loc[order[:N]]
+        pk_loc = pk_loc[np.argsort(pk_loc)]
+    return pk_loc, signal[pk_loc]
+
 
 
 def isRotationMatrix(R):

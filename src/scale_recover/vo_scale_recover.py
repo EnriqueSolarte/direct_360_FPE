@@ -14,8 +14,8 @@ class VO_ScaleRecover:
     def apply_vo_scale(self, scale):
         # ! note that every LY is referenced as WC_SO3_REF (only Rot was applied)
         return np.hstack([
-            obj.boundary_floor + (scale / obj.est_pose.vo_scale) *
-            np.ones_like(obj.boundary_floor) * obj.est_pose.t.reshape(3, 1)
+            obj.boundary + (scale / obj.pose_est.vo_scale) *
+            np.ones_like(obj.boundary) * obj.pose_est.t.reshape(3, 1)
             for obj in self.list_ly
         ])
 
@@ -38,7 +38,7 @@ class VO_ScaleRecover:
         best_scale_hist = []
         # for c2f in tqdm(range(self.config["scale_recover.coarse_levels"]),
         #                 desc="...Estimating Scale"):
-        for c2f in range(self.dt["scale_recover.coarse_levels"]):
+        for c2f in range(self.dt.cfg["scale_recover.coarse_levels"]):
             scale = initial_scale
             self.reset_all()
             scale_step = (max_scale - initial_scale) / 10
@@ -47,12 +47,12 @@ class VO_ScaleRecover:
                 pcl = self.apply_vo_scale(scale=scale)
                 # ! Computing Entropy
                 h = compute_entropy_from_pcl(
-                    pcl=pcl, grid_size=self.dt["scale_recover.grid_size"])
+                    pcl=pcl, grid_size=self.dt.cfg["scale_recover.grid_size"])
 
                 if plot and self.hist_entropy.__len__() > 0:
                     grid, xedges, zedges = get_ocg_map(
                         pcl=pcl,
-                        grid_size=self.dt["scale_recover.grid_size"])
+                        grid_size=self.dt.cfg["scale_recover.grid_size"])
                     grid = grid / np.max(grid)
                     fig = plt.figure("Optimization", figsize=(10, 4))
                     ax1 = fig.add_subplot(121)
@@ -86,7 +86,7 @@ class VO_ScaleRecover:
                 if scale > max_scale:
                     if np.max(self.hist_entropy) - np.min(
                             self.hist_entropy
-                    ) < self.dt["scale_recover.min_scale_variance"]:
+                    ) < self.dt.cfg["scale_recover.min_scale_variance"]:
                         best_scale_hist.append(0)
                     else:
                         idx_min = np.argmin(self.hist_entropy)
@@ -104,7 +104,7 @@ class VO_ScaleRecover:
                                        initial_scale,
                                        scale_step,
                                        plot=False):
-        assert np.random.choice(list_ly, size=1)[0].reference == "WC_SO3", "WC_SO3 references is need for Initial Guess in Scale Recovering"
+        assert np.random.choice(list_ly, size=1)[0].cam_ref == "WC_SO3", "WC_SO3 references is need for Initial Guess in Scale Recovering"
         self.list_ly = list_ly
 
         scale = initial_scale
@@ -115,11 +115,11 @@ class VO_ScaleRecover:
             pcl = self.apply_vo_scale(scale=scale)
             # ! Computing Entropy
             h = compute_entropy_from_pcl(
-                pcl=pcl, grid_size=self.dt["scale_recover.grid_size"])
+                pcl=pcl, grid_size=self.dt.cfg["scale_recover.grid_size"])
 
             if plot and self.hist_entropy.__len__() > 0:
                 grid, xedges, zedges = get_ocg_map(
-                    pcl=pcl, grid_size=self.dt["scale_recover.grid_size"])
+                    pcl=pcl, grid_size=self.dt.cfg["scale_recover.grid_size"])
                 grid = grid / np.max(grid)
                 fig = plt.figure("Optimization", figsize=(10, 4))
                 ax1 = fig.add_subplot(121)
