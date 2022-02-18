@@ -1,6 +1,15 @@
 import numpy as np
+import cv2
+from utils.ocg_utils import compute_uv_bins, project_xyz_to_uv
+from src.data_structure import layout
+
 
 class OCGPatch:
+    """
+    This class handles multiples Patches (defined from every Layout) by 
+    aggregating, combining, and pruning the out.
+    """
+
     def __init__(self, data_manager):
         self.dt = data_manager
         self.v_bins = None
@@ -8,12 +17,9 @@ class OCGPatch:
         self.ocg_map = None
         self.list_ly = []
         self.grid_size = self.dt.cfg['room_id.grid_size']  # TODO A explicit param is better
-        # self.padding = self.cfg.params.ocg_padding
-        # self.pdf = None
         self.list_patch = []
-        # ! uv coordinates for the 1st layout
-        # self.uv_ref = None
-        self.isInitialized = False
+
+        self.is_initialized = False
         self.dynamic_bins = True
 
     def get_patch_and_register_layout(self, layout):
@@ -88,36 +94,12 @@ class OCGPatch:
 
         return np.vstack((x_cell_u, z_cell_v)), ret
 
-    def create_patch(self, boundary):
-        """Returns an obj Patch based on the passed boundary
-
-        :param boundary: [description]
-        :type boundary: [type]
+    def create_patch(self, layout):
+        """Returns an obj Patch based on the passed layout
         """
 
-        patch = Patch(self.dt)
-        patch.u_bins, patch.v_bins = compute_uv_bins(
-            pcl=boundary,
-            grid_size=self.dt.params.roomi_ocg_grid_size,
-            padding=self.dt.params.ocg_padding
-        )
-
-        h, w = patch.v_bins.size-1, patch.u_bins.size - 1
-        # grid_size = abs(patch.v_bins[1] - patch.v_bins[0])
-
-        uv = proj_xyz_to_uv(
-            xyz_points=boundary,
-            u_bins=patch.u_bins,
-            v_bins=patch.v_bins
-        )
-
-        map_2d = np.uint8(np.zeros((int(h), int(w))))
-        cv2.fillPoly(map_2d, [uv.T], color=(1, 1, 1))
-
-        patch.map = map_2d
-        patch.uv = uv
-        patch.boundary = boundary
-        patch.uv_ref = patch.u_bins[0], patch.v_bins[0]
+        patch = Patch(layout.dt)
+        patch.initialize(layout)
         return patch
 
     def get_patch_from_xyz_bounds(self, boundary):
@@ -191,7 +173,7 @@ class OCGPatch:
         return self.ocg_map/np.max(self.ocg_map) >= mean
 
     def get_mask_by_threshold(self, ocg_map=None):
-        
+
         if self.dt.forced_thr_room_id is None:
             threshold = self.dt.params.patches_room_threshold
         else:
@@ -200,14 +182,14 @@ class OCGPatch:
             tmp = ocg_map/np.max(ocg_map)
             # mask = tmp > self.cfg.params.patches_room_threshold
             mask = tmp > threshold
-            
+
             return mask
 
         # mask_0 = self.ocg_map/np.max(self.ocg_map) > 0.0
         tmp = self.ocg_map/np.max(self.ocg_map)
         # mask = tmp > self.cfg.params.patches_room_threshold
         mask = tmp > threshold
-        
+
         return mask
 
     def get_mask(self):
@@ -220,7 +202,7 @@ class OCGPatch:
             threshold = self.dt.params.patches_room_threshold
         else:
             threshold = self.dt.forced_thr_room_id
-            
+
         if flag == Enum.PATCH_THR_CONST:
             tmp = self.ocg_map/np.max(self.ocg_map)
             mask = tmp > threshold
@@ -235,8 +217,6 @@ class OCGPatch:
             tmp = self.ocg_map/np.max(self.ocg_map)
             threshold = np.median(tmp[tmp > 0])
             return self.ocg_map/np.max(self.ocg_map) >= threshold
-
-        # mask_0 = self.ocg_map/np.max(self.ocg_map) > 0.0
 
     def compute_global_bins(self):
         bins = np.vstack([(local_patch.u_bins[0], local_patch.v_bins[0],
@@ -292,7 +272,7 @@ class OCGPatch:
                 v_bins=self.v_bins
             ).squeeze()
             # weight = self.temporal_weight(idx)
-            weight = 1 
+            weight = 1
             self.ocg_map[uv[1]:uv[1]+h, uv[0]:uv[0]+w] += patch.map * weight
 
         assert self.ocg_map.shape == self.get_shape()
@@ -357,84 +337,78 @@ class OCGPatch:
         """
         Initializes the OCGPatch class by using the passed Layout
         """
-        # ! getting only the closest points in the boundary as well as sampling them
-        boundary = layout.get_closest_boundnary_pts(sampling=layout.cfg.params.sampling_boundary)
-        # ! if no point is found
-        if boundary is None:
-            return False
 
         # ! Creating  a Patch obj
-        patch = self.create_patch(boundary)
-        # patch.uv_ref = self.u_bins[0], self.v_bins[0]
+        patch = self.create_patch(layout)
+
         self.ocg_map = np.copy(patch.map)
         self.list_ly.append(layout)
         self.list_patch.append(patch)
-        # self.compute_global_bins()
+
         self.u_bins, self.v_bins = patch.u_bins, patch.v_bins
-        self.isInitialized = True
-        return True
+        self.is_initialized = True
+        return self.is_initialized
 
 
-class OCGData:
-    def __init__(self, cfg):
-        self.cfg = cfg
-        self.ocg_map = None
-        self.zbins = None
-        self.xbins = None
-        self.list_dt = None
+class Patch:
+    """
+    This Class handles the patch represtation for a Layout. 
+    Layout information projected in 2D
+    """
+    @property
+    def u_bins(self):
+        return self.__u_bins
 
-    def set_ocg_map(self, list_dt, factor=1, saturated=False):
+    @u_bins.setter
+    def u_bins(self, value):
+        if value is None:
+            return
+        self.__u_bins = value
+        self.W = int(self.__u_bins.size - 1)
+        self.uv_ref[1] = self.__u_bins[0]
+
+    @property
+    def v_bins(self):
+        return self.__v_bins
+
+    @v_bins.setter
+    def v_bins(self, value):
+        if value is None:
+            return
+        self.__v_bins = value
+        self.H = int(self.v_bins.size - 1)
+        self.uv_ref[0] = self.__v_bins[0]
+
+    def __init__(self, dt):
+        self.layout = None
+        self.dt = dt
+        self.map = None
+        self.uv_boundary = None
+        self.u_bins, self.v_bins = None, None
+        self.is_initialize = False
+        self.H, self.W = None, None
+        self.uv_ref = [None, None]
+
+    def initialize(self, layout):
         """
-        Sets the local ocg map based on list of obj (dt.boundary).
+        Initialize the current Patch with passed layout
         """
-        pcl = np.hstack([obj.boundary for obj in list_dt])
-        # pcl = np.hstack([obj.get_sampled_boundary() for obj in list_dt])
-        ocg_map, self.xbins, self.zbins = get_ocg_map(
-            pcl=pcl,
-            grid_size=self.cfg.params.roomi_ocg_grid_size*factor,
-            padding=self.cfg.params.ocg_padding
-        )
-        if saturated:
-            msk = ocg_map > 0
-            self.ocg_map = np.zeros_like(ocg_map)
-            self.ocg_map[msk] = 1
-        else:
-            # self.ocg = ocg_m
-            self.ocg_map = ocg_map/np.max(ocg_map)
-        #     mask
-
-        self.list_dt = list_dt
-        return self.ocg_map
-
-    def get_visual_ocg(self, saturated=False, caption="OCG map"):
-        if saturated:
-            msk = self.ocg_map > self.cfg.params.ocg_threshold
-            ocg = deepcopy(self.ocg_map)
-            ocg[msk] = 1.0
-        else:
-            ocg = deepcopy(self.ocg_map)
-
-        if self.list_dt.__len__() > 0:
-            ocg = add_list_pts_to_ocg(
-                ocg_map=ocg,
-                xbins=self.xbins,
-                zbins=self.zbins,
-                list_pts=[self.list_dt[-1].pose.t, ],
-                value=-1,
+        if not self.is_initialize:
+            self.layout = layout
+            self.u_bins, self.v_bins = compute_uv_bins(
+                pcl=self.layout.boundary,
+                grid_size=self.dt.cfg["room_id.grid_size"],
+                padding=self.dt.cfg["room_id.grid_padding"]
             )
 
-        return cv2.rotate(ocg, cv2.ROTATE_180)
+            clipped_boundary = layout.get_clipped_boundary()
+            uv = project_xyz_to_uv(
+                xyz_points=clipped_boundary,
+                u_bins=self.u_bins,
+                v_bins=self.v_bins
+            )
 
-    def plot(self, block=True, saturated=False, caption="OCG map"):
-        rotate_ocg = self.get_visual_ocg(saturated=saturated, caption="OCG map")
+            self.map = np.uint8(np.zeros((self.H, self.W)))
+            cv2.fillPoly(self.map, [uv.T], color=(1, 1, 1))
+            self.uv_boundary = uv
 
-        plt.figure(caption)
-        plt.clf()
-        plt.title(caption)
-        # rotate_ocg = cv2.rotate(ocg, cv2.ROTATE_180)
-        # # rotate_ocg = cv2.flip(rotate_ocg, 1)
-
-        plt.imshow(rotate_ocg)
-        plt.draw()
-        plt.waitforbuttonpress(0.001)
-        plt.show(block=block)

@@ -1,11 +1,23 @@
-import numpy as np 
+import numpy as np
 from utils.enum import CAM_REF
+from utils.geometry_utils import extend_array_to_homogeneous
+
 class Layout:
+
+    @property
+    def boundary(self):
+        return self.__boundary
+
+    @boundary.setter
+    def boundary(self, value):
+        self.__boundary = value
+        self.compute_cam2boundary()
 
     def __init__(self, data_manager):
         self.dt = data_manager
 
         self.boundary = None
+        self.cam2boundary = None
         self.bearings = None
 
         # self.corners_id = None
@@ -20,9 +32,11 @@ class Layout:
 
         # >> used in room identifier
         self.central_pose = None
+        
+        self.patch = None
 
         self.ly_data = None
-        self.cam_ref = None
+        self.cam_ref = CAM_REF.CC
         self.height_ratio = 1
 
     def apply_vo_scale(self, scale):
@@ -66,3 +80,28 @@ class Layout:
 
         self.height_ratio = np.mean(np.tan(ceiling)/np.tan(floor))
 
+    def compute_cam2boundary(self):
+        """
+        Computes the horizontal distance for every boundary point w.r.t camera pose
+        """
+        if self.boundary is None:
+            return
+        if self.cam_ref == CAM_REF.WC_SO3 or self.cam_ref == CAM_REF.CC:
+            # ! Boundary reference still in camera reference
+            self.cam2boundary = np.linalg.norm(self.boundary[(0, 2), :], axis=0, keepdims=True)
+        else:
+            assert self.cam_ref == CAM_REF.WC
+            pcl = np.linalg.inv(self.pose_est.SE3_scaled())[:3, :] @ extend_array_to_homogeneous(self.boundary)
+            self.cam2boundary = np.linalg.norm(pcl[(0, 2), :], axis=0, keepdims=True)
+
+
+    def get_clipped_boundary(self):
+        """
+        Returns a clipped boundary
+        """
+        clipped_boundary = self.boundary[(0, 2), :]
+        mask  = (self.cam2boundary > self.dt.cfg["room_id.clipped_ratio"]).squeeze()
+        radius = np.linalg.norm(clipped_boundary, axis=0) 
+        clipped_boundary[:, mask] =self.dt.cfg["room_id.clipped_ratio"] *clipped_boundary[:, mask]/radius[mask]
+
+        return clipped_boundary

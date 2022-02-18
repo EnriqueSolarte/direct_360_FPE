@@ -62,14 +62,12 @@ class DirectFloorPlanEstimation:
         if self.scale_recover.estimate_vo_scale():
             # ! Create very first Room
             self.curr_room = Room(self.dt)
-            self.list_rooms.append(self.curr_room)
-            self.compute_planes(layout)
-            self.curr_room.list_ly.append(layout)
-
-            self.curr_room.is_initialized = True
-            # TODO initialize room ID
-            # TODO initialize OCG local and global?
-            self.is_initialized = True
+            if self.curr_room.initialize(layout):
+                # ! Only if the room is successfully initialized
+                self.list_rooms.append(self.curr_room)
+                self.compute_planes(layout)
+                # TODO initialize OCG local and global?
+                self.is_initialized = True
 
     def apply_vo_scale(self, layout):
         """

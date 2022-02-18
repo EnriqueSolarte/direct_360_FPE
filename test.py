@@ -12,12 +12,12 @@ def main(config_file):
     dt = DataManager(cfg)
     fpe = DirectFloorPlanEstimation(dt)
     list_ly = dt.get_list_ly(cam_ref=CAM_REF.WC_SO3)
-
-    for ly in list_ly:
+    
+    for ly in list_ly:    
         fpe.estimate(ly)
 
-    list_pl = flatten_lists_of_lists([ly.list_pl for ly in list_ly if ly.list_pl.__len__() > 0])
-    plot_color_plc(np.hstack([ly.boundary for ly in list_pl]).T)
+    # list_pl = flatten_lists_of_lists([ly.list_pl for ly in list_ly if ly.list_pl.__len__() > 0])
+    # plot_color_plc(np.hstack([ly.boundary for ly in list_pl]).T)
 
     print('done')
 
