@@ -15,7 +15,7 @@ class DirectFloorPlanEstimation:
         self.scale_recover = ScaleRecover(self.dt)
         self.theta_estimator = ThetaEstimator(self.dt)
         self.plane_estimator = PlaneEstimator(self.dt)
-        self.ocg_map = OCGPatch(self.dt)
+        self.global_ocg_patch = OCGPatch(self.dt)
         self.list_ly = []
         self.list_pl = []
 
@@ -36,10 +36,8 @@ class DirectFloorPlanEstimation:
             return
 
         self.list_ly.append(layout)
-
         self.apply_vo_scale(layout)
         self.compute_planes(layout)
-        return
 
         if self.eval_new_room_creteria(layout):
             self.curr_room = self.select_room(layout)
@@ -65,6 +63,7 @@ class DirectFloorPlanEstimation:
             # ! Create very first Room
             self.curr_room = Room(self.dt)
             self.list_rooms.append(self.curr_room)
+            self.compute_planes(layout)
             self.curr_room.list_ly.append(layout)
 
             self.curr_room.is_initialized = True
