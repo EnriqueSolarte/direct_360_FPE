@@ -10,8 +10,8 @@ scene_version: "0"
 # scene: "2t7WUuJeko7"
 # scene_version: "0"
 
-# scene: "i5noydFURQK"
-# scene_version: "1"
+scene: "i5noydFURQK"
+scene_version: "1"
 
 # scene: "Z6MFQCViBuw"
 # scene_version: "0"
@@ -43,7 +43,7 @@ theta_estimation.penalty: 0.5
 
 # ! Room Identification
 room_id.grid_size: 0.1
-room_id.grid_padding: 100
+room_id.grid_padding: 10
 room_id.room_size: 3
 room_id.neighbor_distance: 5
 room_id.min_kf_pre_room: 3

@@ -1,17 +1,20 @@
 import numpy as np
 from utils.enum import CAM_REF
 from utils.geometry_utils import extend_array_to_homogeneous
+from .ocg_patch import Patch
+
 
 class Layout:
-
     @property
     def boundary(self):
         return self.__boundary
 
     @boundary.setter
     def boundary(self, value):
+        if value is None:
+            return
         self.__boundary = value
-        self.compute_cam2boundary()
+        self.is_initialized = False
 
     def __init__(self, data_manager):
         self.dt = data_manager
@@ -20,8 +23,6 @@ class Layout:
         self.cam2boundary = None
         self.bearings = None
 
-        # self.corners_id = None
-        # self.corner_coords = Non
         self.pose_gt = None
         self.pose_est = None
         self.idx = None
@@ -30,14 +31,21 @@ class Layout:
         self.list_pl = []
         self.list_corners = []
 
-        # >> used in room identifier
-        self.central_pose = None
-        
-        self.patch = None
+        self.patch = Patch(self.dt)
+        self.patch.layout = self
 
         self.ly_data = None
         self.cam_ref = CAM_REF.CC
         self.height_ratio = 1
+
+        self.is_initialized = True
+
+    def initialize(self):
+        """
+        Initialize this layout
+        """
+        self.compute_cam2boundary()
+        self.patch.initialize()
 
     def apply_vo_scale(self, scale):
 
@@ -94,14 +102,16 @@ class Layout:
             pcl = np.linalg.inv(self.pose_est.SE3_scaled())[:3, :] @ extend_array_to_homogeneous(self.boundary)
             self.cam2boundary = np.linalg.norm(pcl[(0, 2), :], axis=0, keepdims=True)
 
-
     def get_clipped_boundary(self):
         """
         Returns a clipped boundary
         """
-        clipped_boundary = self.boundary[(0, 2), :]
-        mask  = (self.cam2boundary > self.dt.cfg["room_id.clipped_ratio"]).squeeze()
-        radius = np.linalg.norm(clipped_boundary, axis=0) 
-        clipped_boundary[:, mask] =self.dt.cfg["room_id.clipped_ratio"] *clipped_boundary[:, mask]/radius[mask]
 
-        return clipped_boundary
+        assert self.cam_ref == CAM_REF.WC
+
+        clipped_boundary = np.linalg.inv(self.pose_est.SE3_scaled())[:3, :] @ extend_array_to_homogeneous(self.boundary)
+        mask = (self.cam2boundary > self.dt.cfg["room_id.clipped_ratio"]).squeeze()
+        radius = np.linalg.norm(clipped_boundary[(0, 2), :], axis=0)
+        clipped_boundary[:, mask] = self.dt.cfg["room_id.clipped_ratio"] * clipped_boundary[:, mask]/radius[mask]
+
+        return self.pose_est.SE3_scaled()[:3, :] @ extend_array_to_homogeneous(clipped_boundary)
