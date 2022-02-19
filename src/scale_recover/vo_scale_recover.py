@@ -41,7 +41,7 @@ class VO_ScaleRecover:
         for c2f in range(self.dt.cfg["scale_recover.coarse_levels"]):
             scale = initial_scale
             self.reset_all()
-            scale_step = (max_scale - initial_scale) / 10
+            scale_step = (max_scale - initial_scale) / (2 *c2f**2)
             while True:
                 # ! Applying scale
                 pcl = self.apply_vo_scale(scale=scale)

@@ -56,7 +56,7 @@ class ScaleRecover:
                 self.dt.cfg["scale_recover.max_loops_iterations"] *
                 self.list_ly.__len__()), desc="Estimating VO-Scale..."):
             batch = self.get_next_batch()
-
+            print(self.vo_scale, batch[-1].idx)
             self.apply_vo_scale(batch, self.vo_scale)
 
             scale = self.vo_scale_recover.estimate_scale(
@@ -65,7 +65,7 @@ class ScaleRecover:
                 max_scale=max_scale,
                 initial_scale=init_scale,
                 scale_step=self.dt.cfg["scale_recover.scale_step"],
-                plot=False)
+                plot=True)
             self.update_vo_scale(self.vo_scale + scale)
 
             if self.internal_idx + self.dt.cfg[
