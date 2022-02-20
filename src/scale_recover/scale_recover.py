@@ -22,7 +22,7 @@ class ScaleRecover:
         batch = self.list_ly[self.internal_idx:self.internal_idx +
                              self.dt.cfg["scale_recover.sliding_windows"]]
         self.internal_idx = self.internal_idx + self.dt.cfg[
-            "scale_recover.sliding_windows"]
+            "scale_recover.sliding_windows"]//2
         # print(f"Reading Batch LY.idx's: {batch[0].idx} - {batch[-1].idx}")
         return batch
 
@@ -58,19 +58,18 @@ class ScaleRecover:
             self.apply_vo_scale(batch, self.vo_scale)
             # ! Since every batch already has a vo-scale computed by a previous step
             # ! the estimate scale is a relative increment scale
+            # ! i.e., scale = 0 keeps the already the estimated scale
 
             max_scale = 50 * self.dt.cfg["scale_recover.scale_step"]
             min_scale = -50 * self.dt.cfg["scale_recover.scale_step"]
-            if min_scale <  self.dt.cfg["scale_recover.min_vo_scale"]:
-                min_scale =  self.dt.cfg["scale_recover.min_vo_scale"]
-
+          
             scale = self.vo_scale_recover.estimate_scale(
                 # !Estimation using coarse-to-fine approach and only the last planes
                 list_ly=batch,
                 max_scale=max_scale,
                 min_scale=min_scale,
-                plot=True)
-            print(scale + self.vo_scale)
+                plot=False)
+            # print(scale + self.vo_scale)
             self.update_vo_scale(scale + self.vo_scale)
 
             if self.internal_idx + self.dt.cfg[
@@ -125,7 +124,7 @@ class ScaleRecover:
         Recovers VO-scale by Entropy Minimization
         """
         # ! Using loaded layout in data_manager
-        num_lys = int(self.dt.list_ly.__len__() * self.dt.cfg['scale_recover.lys_for_init'])
+        num_lys = int(self.dt.list_ly.__len__() * self.dt.cfg['scale_recover.lys_for_warmup'])
         self.list_ly = self.dt.list_ly[:num_lys]
 
         if not self.estimate_initial_vo_scale():

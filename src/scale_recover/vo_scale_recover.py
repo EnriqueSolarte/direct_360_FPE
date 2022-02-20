@@ -13,8 +13,8 @@ class VO_ScaleRecover:
 
     def apply_vo_scale(self, scale):
         return np.hstack([
-            obj.boundary + (scale / obj.pose_est.vo_scale) *
-            np.ones_like(obj.boundary) * obj.pose_est.t.reshape(3, 1)
+            obj.boundary[:, obj.cam2boundary_mask] + (scale / obj.pose_est.vo_scale) *
+            np.ones_like(obj.boundary[:, obj.cam2boundary_mask]) * obj.pose_est.t.reshape(3, 1)
             for obj in self.list_ly
         ])
 
@@ -30,29 +30,36 @@ class VO_ScaleRecover:
                        plot=False):
 
         self.list_ly = list_ly
-        # ! Scale already allplied to list_ly
-        vo_scale = list_ly[0].pose_est.vo_scale 
+        # ! Scale already applied  to the passed list_ly
+        vo_scale = list_ly[0].pose_est.vo_scale
         scale = min_scale
         self.reset_all()
 
         best_scale_hist = []
-        # for c2f in tqdm(range(self.config["scale_recover.coarse_levels"]),
-        #                 desc="...Estimating Scale"):
+
+        invalid_estimation = False
         for c2f in range(self.dt.cfg["scale_recover.coarse_levels"]):
             scale = min_scale
             self.reset_all()
             scale_step = (max_scale - min_scale) / 10
             while True:
                 # ! Applying scale
-                pcl = self.apply_vo_scale(scale=vo_scale + scale)
+                pcl = self.apply_vo_scale(scale=scale)
                 # ! Computing Entropy
-                h = compute_entropy_from_pcl(
-                    pcl=pcl, grid_size=self.dt.cfg["scale_recover.grid_size"])
+                h, ocg_map = compute_entropy_from_pcl(
+                    pcl=pcl, grid_size=self.dt.cfg["scale_recover.grid_size"], 
+                    return_ocg_map=True)
+
+                # print(ocg_map.shape, ocg_map.size)
+                if ocg_map.size > np.prod(self.dt.cfg["scale_recover.max_ocg_map_size"]):
+                    print("The scene content invalid regions...")
+                    invalid_estimation = True
+                    break
 
                 if plot and self.hist_entropy.__len__() > 0:
-                    ocg_map, xedges, zedges = get_ocg_map(
-                        pcl=pcl,
-                        grid_size=self.dt.cfg["scale_recover.grid_size"])
+                    # ocg_map, xedges, zedges = get_ocg_map(
+                    #     pcl=pcl,
+                    #     grid_size=self.dt.cfg["scale_recover.grid_size"])
                     ocg_map = ocg_map / np.max(ocg_map)
                     fig = plt.figure("Optimization", figsize=(10, 4))
                     plt.clf()
@@ -68,12 +75,12 @@ class VO_ScaleRecover:
                     idx_min = np.argmin(self.hist_entropy)
                     best_scale = self.hist_scale[idx_min]
                     ax2.scatter(
-                        best_scale,
+                        best_scale + vo_scale,
                         np.min(self.hist_entropy),
-                        label="Best Scale:{0:0.2f}\nLowest H:{1:0.2f}".format(
+                        label="Best increment-scale:{0:0.2f}\nLowest H:{1:0.2f}".format(
                             best_scale, np.min(self.hist_entropy)),
                         c="red")
-                    ax2.set_xlabel("Scale")
+                    ax2.set_xlabel("Increment Scale")
                     ax2.set_ylabel("Entropy")
                     ax2.legend()
                     ax2.grid()
@@ -85,9 +92,10 @@ class VO_ScaleRecover:
                 self.hist_entropy.append(h)
                 self.hist_scale.append(scale)
                 scale += scale_step
-                if vo_scale + scale <  self.dt.cfg["scale_recover.min_vo_scale"]:
+                if vo_scale + scale < self.dt.cfg["scale_recover.min_vo_scale"]:
+                    invalid_estimation = True
                     break
-                
+
                 if scale > max_scale or scale < min_scale:
                     idx_min = np.argmin(self.hist_entropy)
                     best_scale_hist.append(self.hist_scale[idx_min])
@@ -95,10 +103,12 @@ class VO_ScaleRecover:
                     min_scale = np.mean(best_scale_hist) - scale_step * 2
                     max_scale = np.mean(best_scale_hist) + scale_step * 2
                     break
-            
-            if vo_scale + scale <  self.dt.cfg["scale_recover.min_vo_scale"]:
+
+            if invalid_estimation:
+                # ! Forcing to return a zero relative scale
+                best_scale_hist = [0]
                 break
-            
+
         return np.mean(best_scale_hist)
 
     def estimate_by_searching_in_range(self,
@@ -196,13 +206,16 @@ def compute_entropy_from_pcl(pcl,
                              grid_size,
                              weights=None,
                              xedges=None,
-                             zedges=None):
-    grid, _, _ = get_ocg_map(pcl=pcl,
-                             grid_size=grid_size,
-                             weights=weights,
-                             xedges=xedges,
-                             zedges=zedges)
-    return compute_entropy_from_ocg_map(grid)
+                             zedges=None,
+                             return_ocg_map=False):
+    ocg_map, _, _ = get_ocg_map(pcl=pcl,
+                                grid_size=grid_size,
+                                weights=weights,
+                                xedges=xedges,
+                                zedges=zedges)
+    if return_ocg_map:
+        return compute_entropy_from_ocg_map(ocg_map), ocg_map
+    return compute_entropy_from_ocg_map(ocg_map)
 
 
 def compute_entropy_from_ocg_map(ocg_map):

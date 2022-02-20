@@ -21,6 +21,8 @@ class Layout:
 
         self.boundary = None
         self.cam2boundary = None
+        self.cam2boundary_mask = None
+        
         self.bearings = None
 
         self.pose_gt = None
@@ -44,7 +46,6 @@ class Layout:
         """
         Initialize this layout
         """
-        self.compute_cam2boundary()
         self.patch.initialize()
 
     def apply_vo_scale(self, scale):
@@ -96,11 +97,15 @@ class Layout:
             return
         if self.cam_ref == CAM_REF.WC_SO3 or self.cam_ref == CAM_REF.CC:
             # ! Boundary reference still in camera reference
-            self.cam2boundary = np.linalg.norm(self.boundary[(0, 2), :], axis=0, keepdims=True)
+            self.cam2boundary = np.linalg.norm(self.boundary[(0, 2), :], axis=0)
+            self.cam2boundary_mask = self.cam2boundary.reshape([-1,]) < self.dt.cfg["room_id.clipped_ratio"]
         else:
             assert self.cam_ref == CAM_REF.WC
             pcl = np.linalg.inv(self.pose_est.SE3_scaled())[:3, :] @ extend_array_to_homogeneous(self.boundary)
-            self.cam2boundary = np.linalg.norm(pcl[(0, 2), :], axis=0, keepdims=True)
+            self.cam2boundary = np.linalg.norm(pcl[(0, 2), :], axis=0)
+            med_distance = np.median(self.cam2boundary)
+            self.cam2boundary_mask = self.cam2boundary.reshape([-1,]) < med_distance
+            
 
     def get_clipped_boundary(self):
         """
@@ -110,7 +115,7 @@ class Layout:
         assert self.cam_ref == CAM_REF.WC
 
         clipped_boundary = np.linalg.inv(self.pose_est.SE3_scaled())[:3, :] @ extend_array_to_homogeneous(self.boundary)
-        mask = (self.cam2boundary > self.dt.cfg["room_id.clipped_ratio"]).squeeze()
+        mask = self.cam2boundary > self.dt.cfg["room_id.clipped_ratio"]
         radius = np.linalg.norm(clipped_boundary[(0, 2), :], axis=0)
         clipped_boundary[:, mask] = self.dt.cfg["room_id.clipped_ratio"] * clipped_boundary[:, mask]/radius[mask]
 

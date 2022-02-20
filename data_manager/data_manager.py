@@ -119,7 +119,7 @@ class DataManager:
                 pcl = pose_est.SE3_scaled()[0:3, :] @ extend_array_to_homogeneous(pcl)
 
             # > Projecting PCL into zero-plane
-            # pcl[1, :] = 0  # TODO verify if this is really needed
+            pcl[1, :] = 0  # TODO verify if this is really needed
 
             ly = Layout(self)
             ly.bearings = bearings
@@ -130,6 +130,7 @@ class DataManager:
             ly.ly_data = data_ly
             ly.cam_ref = cam_ref
             # ly.estimate_height_ratio()
+            ly.compute_cam2boundary()
             list_ly.append(ly)
 
         self.list_ly = list_ly

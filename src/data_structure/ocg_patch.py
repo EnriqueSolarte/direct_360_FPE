@@ -153,7 +153,7 @@ class Patch:
         self.is_initialized = False
 
         self.u_bins, self.v_bins = compute_uv_bins(
-            pcl=self.layout.boundary,
+            pcl=self.layout.boundary[:, self.layout.cam2boundary_mask],
             grid_size=self.dt.cfg["room_id.grid_size"],
             padding=self.dt.cfg["room_id.grid_padding"]
         )

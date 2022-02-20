@@ -43,7 +43,7 @@ theta_estimation.penalty: 0.5
 
 # ! Room Identification
 room_id.grid_size: 0.1
-room_id.grid_padding: 10
+room_id.grid_padding: 100
 room_id.room_size: 3
 room_id.neighbor_distance: 5
 room_id.min_kf_pre_room: 3
@@ -61,5 +61,6 @@ scale_recover.coarse_levels: 4
 scale_recover.scale_step: 0.01
 scale_recover.min_scale_variance: 0.01
 scale_recover.grid_size: 0.1 
+scale_recover.max_ocg_map_size: [1000, 1000] 
 scale_recover.max_loops_iterations: 2
-scale_recover.lys_for_init: 1
+scale_recover.lys_for_warmup: 1
