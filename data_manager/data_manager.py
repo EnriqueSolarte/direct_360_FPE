@@ -126,7 +126,7 @@ class DataManager:
                 pcl = pose_est.SE3_scaled()[0:3, :] @ extend_array_to_homogeneous(pcl)
 
             # > Projecting PCL into zero-plane
-            pcl[1, :] = 0  # TODO verify if this is really needed
+            # pcl[1, :] = 0  # TODO verify if this is really needed
 
             ly = Layout(self)
             ly.bearings = bearings

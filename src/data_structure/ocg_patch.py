@@ -60,7 +60,8 @@ class OCGPatches:
             if not patch.initialize():
                 return self.is_initialized
 
-        self.ocg_map = np.expand_dims(patch.ocg_map, 2)
+        # self.ocg_map = np.expand_dims(patch.ocg_map, 2)
+        self.ocg_map = np.copy(patch.ocg_map)
         self.list_patches.append(patch)
 
         self.u_bins, self.v_bins = patch.u_bins, patch.v_bins
@@ -97,10 +98,25 @@ class OCGPatches:
 
             self.ocg_map[uv[1]:uv[1]+h, uv[0]:uv[0]+w, idx] = patch.ocg_map
 
+    def update_ocg_map2(self):
+        H, W = self.get_shape()
+        self.ocg_map = np.zeros((H, W))
+        temporal_weight = np.linspace(1, 0, self.list_patches.__len__())
+        for idx, patch in enumerate(self.list_patches):
+            h, w = patch.H, patch.W
+            uv = project_xyz_to_uv(
+                xyz_points=np.array((patch.uv_ref[0], 0, patch.uv_ref[1])).reshape((3, 1)),
+                u_bins=self.u_bins,
+                v_bins=self.v_bins
+            ).squeeze()
+
+            self.ocg_map[uv[1]:uv[1]+h, uv[0]:uv[0]+w] += patch.ocg_map * temporal_weight[idx]
+        # self.ocg_map = self.ocg_map/self.ocg_map.max()
+
     def add_patch(self, patch):
         self.list_patches.append(patch)
         self.update_bins()
-        self.update_ocg_map()
+        self.update_ocg_map2()
 
     def get_shape(self):
         return (self.v_bins.size-1, self.u_bins.size-1)

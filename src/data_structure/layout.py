@@ -91,7 +91,8 @@ class Layout:
 
     def compute_cam2boundary(self):
         """
-        Computes the horizontal distance for every boundary point w.r.t camera pose
+        Computes the horizontal distance for every boundary point w.r.t camera pose. 
+        The boundary can be in any reference coordinates
         """
         if self.boundary is None:
             return

@@ -1,11 +1,13 @@
 from cv2 import sepFilter2D
+from urllib3 import Retry
 from src.scale_recover import ScaleRecover
 from src.solvers.theta_estimator import ThetaEstimator
 from src.solvers.plane_estimator import PlaneEstimator
-from src.data_structure import OCGPatches
+from src.data_structure import OCGPatches, room
 from .data_structure import Room
 from utils.geometry_utils import find_N_peaks
 import numpy as np
+import matplotlib.pyplot as plt
 
 class DirectFloorPlanEstimation:
 
@@ -36,12 +38,17 @@ class DirectFloorPlanEstimation:
 
         if not self.initialize_layout(layout):
             return layout.is_initialized
-        
-        # if self.eval_new_room_creteria(layout):
-        #     self.curr_room = self.select_room(layout)
-        #     if self.curr_room is None:
-        #         # ! New Room in the system
-        #         self.curr_room = Room(self.dt)
+
+        if self.eval_new_room_creteria(layout):
+            # self.curr_room = self.select_room(layout)
+            self.curr_room = None
+            if self.curr_room is None:
+                # ! New Room in the system
+                self.curr_room = Room(self.dt)
+                # ! Initialize current room
+                if self.curr_room.initialize(layout):
+                    self.list_rooms.append(room)
+                return 
 
         self.update_data(layout)
 
@@ -51,15 +58,15 @@ class DirectFloorPlanEstimation:
         """
         if not layout.is_initialized:
             raise ValueError("Passed Layout must be initialized first...")
-        
+
         self.curr_room.add_layout(layout)
         self.add_layout(layout)
-    
+
     def add_layout(self, layout):
         self.list_ly.append(layout)
         [self.list_pl.append(pl) for pl in layout.list_pl]
-        self.global_ocg_patch.add_patch(layout.patch)
-    
+        # self.global_ocg_patch.add_patch(layout.patch)
+
     def initialize_layout(self, layout):
         """
         Initializes the passed layout. This function has to be applied to all 
@@ -91,14 +98,14 @@ class DirectFloorPlanEstimation:
         # ! Initialize current room
         if not self.curr_room.initialize(layout):
             return self.is_initialized
-        
+
         self.list_ly.append(layout)
         [self.list_pl.append(pl) for pl in layout.list_pl]
 
         # ! Initialize Global Patches
         if not self.global_ocg_patch.initialize(layout.patch):
             return self.is_initialized
-        
+
         # ! Only if the room is successfully initialized
         self.list_rooms.append(self.curr_room)
 
@@ -111,14 +118,27 @@ class DirectFloorPlanEstimation:
         """
         if not layout.is_initialized:
             raise ValueError("Layout must be initialized before...")
-            
-        pose_uv = self.global_ocg_patch.project_xyz_to_uv(
+
+        pose_uv = self.curr_room.local_ocg_patches.project_xyz_to_uv(
             xyz_points=layout.pose_est.t.reshape((3, 1))
         )
+        room_ocg_map = self.curr_room.local_ocg_patches.ocg_map
         
-        curr_room_idx = self.list_rooms.index(self.curr_room)
-        tmp_ocg = self.global_ocg_patch.ocg_map[:, :, curr_room_idx]
-        eval_pose = tmp_ocg[pose_uv[1, :], pose_uv[0, :]]
+        # curr_room_idx = self.list_rooms.index(self.curr_room)
+        # tmp_ocg = self.global_ocg_patch.ocg_map[:, :, curr_room_idx]
+        tmp_ocg = room_ocg_map
+        eval_pose = tmp_ocg[pose_uv[1, :], pose_uv[0, :]]/tmp_ocg.max()
+        self.curr_room.p_pose.append(eval_pose)
+        plt.figure(0)
+        plt.clf()
+        plt.subplot(121)   
+        room_ocg_map[pose_uv[1, :], pose_uv[0, :]] = -1
+        plt.imshow(room_ocg_map)
+        plt.subplot(122)   
+        plt.plot(self.curr_room.p_pose)
+        plt.draw()
+        plt.waitforbuttonpress(0.1)
+        
         if eval_pose < self.dt.cfg["room_id.ocg_threshold"]:
             return True
         else:

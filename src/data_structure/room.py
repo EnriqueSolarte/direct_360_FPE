@@ -9,6 +9,9 @@ class Room:
         self.local_ocg_patches = OCGPatches(self.dt)
         self.list_corners = []
         self.boundary = None
+        
+        # ! For Tracking pose likelihood
+        self.p_pose = []
     
     def initialize(self, layout):
         """
