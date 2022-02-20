@@ -103,8 +103,7 @@ class Layout:
             assert self.cam_ref == CAM_REF.WC
             pcl = np.linalg.inv(self.pose_est.SE3_scaled())[:3, :] @ extend_array_to_homogeneous(self.boundary)
             self.cam2boundary = np.linalg.norm(pcl[(0, 2), :], axis=0)
-            med_distance = np.median(self.cam2boundary)
-            self.cam2boundary_mask = self.cam2boundary.reshape([-1,]) < med_distance
+            self.cam2boundary_mask = self.cam2boundary.reshape([-1,]) < self.dt.cfg["room_id.clipped_ratio"]
             
 
     def get_clipped_boundary(self):

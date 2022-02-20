@@ -26,31 +26,38 @@ class DataManager:
         """
         Sets all paths necessary for the DataManager
         """
-        self.scene_name = self.cfg['scene'] + '_' + self.cfg['scene_version']
-        self.mp3d_fpe_dir = self.cfg["mp3d_fpe_dir"]
-        self.vo_dir = glob.glob(os.path.join(self.mp3d_fpe_dir, 'vo_*'))[0]
-
+        try:
+            self.scene_name = self.cfg['scene'] + '_' + self.cfg['scene_version']
+            self.mp3d_fpe_dir = self.cfg["mp3d_fpe_dir"]
+            self.vo_dir = glob.glob(os.path.join(self.mp3d_fpe_dir, 'vo_*'))[0]
+        except:
+            raise ValueError("Data_manager couldn't access to the data..")
+        
     def load_data(self):
         """
         Loads all data for DataManager
         """
         # ! List of Kf
-        with open(os.path.join(self.vo_dir, 'keyframe_list.txt'), 'r') as f:
-            self.list_kf = sorted([int(kf) for kf in f.read().splitlines()])
+        try:
+            with open(os.path.join(self.vo_dir, 'keyframe_list.txt'), 'r') as f:
+                self.list_kf = sorted([int(kf) for kf in f.read().splitlines()])
 
-        # ! List of camera poses
-        self.load_camera_poses()
+            # ! List of camera poses
+            self.load_camera_poses()
 
-        #! List of LY estimations
-        self.list_ly_npy = [os.path.join(self.vo_dir, self.cfg['ly_model'], f'{f}.npy') for f in self.list_kf]
+            #! List of LY estimations
+            self.list_ly_npy = [os.path.join(self.vo_dir, self.cfg['ly_model'], f'{f}.npy') for f in self.list_kf]
 
-        # ! List of RGB images
-        self.list_rgb_img = [os.path.join(self.mp3d_fpe_dir, f'rgb/{f}.png') for f in self.list_kf]
+            # ! List of RGB images
+            self.list_rgb_img = [os.path.join(self.mp3d_fpe_dir, f'rgb/{f}.png') for f in self.list_kf]
 
-        # !List of DepthGT maps
-        self.list_depth_maps = [os.path.join(self.mp3d_fpe_dir, f'depth/tiff/{f}.tiff') for f in self.list_kf]
+            # !List of DepthGT maps
+            self.list_depth_maps = [os.path.join(self.mp3d_fpe_dir, f'depth/tiff/{f}.tiff') for f in self.list_kf]
 
-        self.cam = Sphere(shape=self.cfg['image_resolution'])
+            self.cam = Sphere(shape=self.cfg['image_resolution'])
+        except:
+            raise ValueError("Data_manager couldn't access to the data..")
+        
 
     def load_camera_poses(self):
         """
