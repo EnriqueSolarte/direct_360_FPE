@@ -53,7 +53,7 @@ room_id.clipped_ratio: 2
 
 
 # ! Scale Recovering Parameters
-scale_recover.max_vo_scale: 3
+scale_recover.max_vo_scale: 5
 scale_recover.min_vo_scale: 0.01
 scale_recover.sliding_windows: 10
 scale_recover.initial_batch: 10

@@ -12,7 +12,6 @@ class VO_ScaleRecover:
         self.hist_scale = []
 
     def apply_vo_scale(self, scale):
-        # ! note that every LY is referenced as WC_SO3_REF (only Rot was applied)
         return np.hstack([
             obj.boundary + (scale / obj.pose_est.vo_scale) *
             np.ones_like(obj.boundary) * obj.pose_est.t.reshape(3, 1)
@@ -27,38 +26,40 @@ class VO_ScaleRecover:
     def estimate_scale(self,
                        list_ly,
                        max_scale,
-                       initial_scale,
-                       scale_step,
+                       min_scale,
                        plot=False):
 
         self.list_ly = list_ly
-        scale = initial_scale
+        # ! Scale already allplied to list_ly
+        vo_scale = list_ly[0].pose_est.vo_scale 
+        scale = min_scale
         self.reset_all()
 
         best_scale_hist = []
         # for c2f in tqdm(range(self.config["scale_recover.coarse_levels"]),
         #                 desc="...Estimating Scale"):
         for c2f in range(self.dt.cfg["scale_recover.coarse_levels"]):
-            scale = initial_scale
+            scale = min_scale
             self.reset_all()
-            scale_step = (max_scale - initial_scale) / (2 *c2f**2)
+            scale_step = (max_scale - min_scale) / 10
             while True:
                 # ! Applying scale
-                pcl = self.apply_vo_scale(scale=scale)
+                pcl = self.apply_vo_scale(scale=vo_scale + scale)
                 # ! Computing Entropy
                 h = compute_entropy_from_pcl(
                     pcl=pcl, grid_size=self.dt.cfg["scale_recover.grid_size"])
 
                 if plot and self.hist_entropy.__len__() > 0:
-                    grid, xedges, zedges = get_ocg_map(
+                    ocg_map, xedges, zedges = get_ocg_map(
                         pcl=pcl,
                         grid_size=self.dt.cfg["scale_recover.grid_size"])
-                    grid = grid / np.max(grid)
+                    ocg_map = ocg_map / np.max(ocg_map)
                     fig = plt.figure("Optimization", figsize=(10, 4))
+                    plt.clf()
                     ax1 = fig.add_subplot(121)
                     ax1.clear()
-                    ax1.set_title("OCG map @ scale:{0:0.4f}".format(scale))
-                    ax1.imshow(grid)
+                    ax1.set_title("OCG map @ scale:{0:0.4f}".format(vo_scale + scale))
+                    ax1.imshow(ocg_map)
 
                     ax2 = fig.add_subplot(122)
                     ax2.clear()
@@ -74,6 +75,7 @@ class VO_ScaleRecover:
                         c="red")
                     ax2.set_xlabel("Scale")
                     ax2.set_ylabel("Entropy")
+                    ax2.legend()
                     ax2.grid()
                     plt.draw()
                     plt.waitforbuttonpress(0.01)
@@ -83,19 +85,20 @@ class VO_ScaleRecover:
                 self.hist_entropy.append(h)
                 self.hist_scale.append(scale)
                 scale += scale_step
-                if scale > max_scale:
-                    if np.max(self.hist_entropy) - np.min(
-                            self.hist_entropy
-                    ) < self.dt.cfg["scale_recover.min_scale_variance"]:
-                        best_scale_hist.append(0)
-                    else:
-                        idx_min = np.argmin(self.hist_entropy)
-                        best_scale_hist.append(self.hist_scale[idx_min])
+                if vo_scale + scale <  self.dt.cfg["scale_recover.min_vo_scale"]:
+                    break
+                
+                if scale > max_scale or scale < min_scale:
+                    idx_min = np.argmin(self.hist_entropy)
+                    best_scale_hist.append(self.hist_scale[idx_min])
 
-                    initial_scale = np.mean(best_scale_hist) - scale_step * 2
+                    min_scale = np.mean(best_scale_hist) - scale_step * 2
                     max_scale = np.mean(best_scale_hist) + scale_step * 2
                     break
-
+            
+            if vo_scale + scale <  self.dt.cfg["scale_recover.min_vo_scale"]:
+                break
+            
         return np.mean(best_scale_hist)
 
     def estimate_by_searching_in_range(self,

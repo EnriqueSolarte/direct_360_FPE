@@ -49,24 +49,29 @@ class ScaleRecover:
         Estimates the vo-scale by linear search in a coarse-to-fine manner
         """
 
-        max_scale = 50 * self.dt.cfg["scale_recover.scale_step"]
-        init_scale = -50 * self.dt.cfg["scale_recover.scale_step"]
-
         for iteration in tqdm(range(
                 self.dt.cfg["scale_recover.max_loops_iterations"] *
                 self.list_ly.__len__()), desc="Estimating VO-Scale..."):
+
             batch = self.get_next_batch()
-            print(self.vo_scale, batch[-1].idx)
+            # print(self.vo_scale, batch[-1].idx)
             self.apply_vo_scale(batch, self.vo_scale)
+            # ! Since every batch already has a vo-scale computed by a previous step
+            # ! the estimate scale is a relative increment scale
+
+            max_scale = 50 * self.dt.cfg["scale_recover.scale_step"]
+            min_scale = -50 * self.dt.cfg["scale_recover.scale_step"]
+            if min_scale <  self.dt.cfg["scale_recover.min_vo_scale"]:
+                min_scale =  self.dt.cfg["scale_recover.min_vo_scale"]
 
             scale = self.vo_scale_recover.estimate_scale(
                 # !Estimation using coarse-to-fine approach and only the last planes
                 list_ly=batch,
                 max_scale=max_scale,
-                initial_scale=init_scale,
-                scale_step=self.dt.cfg["scale_recover.scale_step"],
+                min_scale=min_scale,
                 plot=True)
-            self.update_vo_scale(self.vo_scale + scale)
+            print(scale + self.vo_scale)
+            self.update_vo_scale(scale + self.vo_scale)
 
             if self.internal_idx + self.dt.cfg[
                     "scale_recover.sliding_windows"] >= self.list_ly.__len__():
