@@ -57,7 +57,6 @@ class DataManager:
             self.cam = Sphere(shape=self.cfg['image_resolution'])
         except:
             raise ValueError("Data_manager couldn't access to the data..")
-        
 
     def load_camera_poses(self):
         """

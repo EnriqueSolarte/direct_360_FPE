@@ -7,8 +7,8 @@ scene_category: "MULTI_ROOM_SCENES"
 scene: "i5noydFURQK"
 scene_version: "0"
 
-# scene: "2t7WUuJeko7"
-# scene_version: "0"
+scene: "2t7WUuJeko7"
+scene_version: "0"
 
 scene: "i5noydFURQK"
 scene_version: "1"
@@ -41,17 +41,13 @@ theta_estimation.common_sigma: 30
 theta_estimation.sigma_reduction: 1.01
 theta_estimation.penalty: 0.5
 
+
 # ! Room Identification
 room_id.grid_size: 0.1
 room_id.grid_padding: 50
-# room_id.room_size: 3
-# room_id.neighbor_distance: 5
-# room_id.min_kf_pre_room: 3
 room_id.ocg_threshold: 0.5
-room_id.clipped_ratio: 2
-room_id.iuo_overlapping_allowed: 0.9
-
-
+room_id.clipped_ratio: 5
+room_id.iuo_overlapping_allowed: 0.3
 
 
 # ! Scale Recovering Parameters

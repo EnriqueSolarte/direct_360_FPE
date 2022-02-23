@@ -1,12 +1,11 @@
 from src.scale_recover import ScaleRecover
-from src.solvers.theta_estimator import ThetaEstimator
 from src.solvers.plane_estimator import PlaneEstimator
 from src.data_structure import OCGPatches, Room
 from utils.geometry_utils import find_N_peaks
 import numpy as np
 from utils.ocg_utils import compute_iou_ocg_map
 from utils.enum import ROOM_STATUS
-from utils.visualization.room_utils import plot_curr_room_by_patches, plot_all_rooms_by_patches
+from utils.visualization.room_utils import plot_curr_room_by_patches, plot_all_rooms_by_patches, plot_estimated_orientations
 
 
 class DirectFloorPlanEstimation:
@@ -14,7 +13,6 @@ class DirectFloorPlanEstimation:
     def __init__(self, data_manager):
         self.dt = data_manager
         self.scale_recover = ScaleRecover(self.dt)
-        self.theta_estimator = ThetaEstimator(self.dt)
         self.plane_estimator = PlaneEstimator(self.dt)
         self.global_ocg_patch = OCGPatches(self.dt)
         self.list_ly = []
@@ -56,6 +54,7 @@ class DirectFloorPlanEstimation:
         self.update_data(layout)
         # plot_curr_room_by_patches(self)
         plot_all_rooms_by_patches(self)
+        plot_estimated_orientations(self.curr_room.theta_z)
 
     def update_data(self, layout):
         """
@@ -196,6 +195,7 @@ class DirectFloorPlanEstimation:
             if not flag_success:
                 continue
 
+            pl.pose = layout.pose_est
             list_pl.append(pl)
 
         layout.list_pl = list_pl
@@ -258,6 +258,8 @@ class DirectFloorPlanEstimation:
         new_room.add_metadata(room_a)
         new_room.add_metadata(room_b)
         new_room.refresh()
+
+        new_room.compute_orientations() 
         new_room.set_status(ROOM_STATUS.MERGED)
 
         room_a.set_status(ROOM_STATUS.FOR_DELETION)

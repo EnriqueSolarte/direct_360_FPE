@@ -57,95 +57,42 @@ class GaussianModel_1D:
 class ThetaEstimator:
     def __init__(self, data_manager):
         self.dt = data_manager
-
-    def estimate_from_list_theta_z(self, list_theta_z, measurements=None, prune_out=True):
-        if measurements is None:
-            measurements = []
-        for z in tqdm(list_theta_z, desc="...Filtering theta_z list"):
-            # pl.was_used_for_orientation = True
-
-            if measurements.__len__() < 1:
-                measurements = [GaussianModel_1D(
-                    mean=z.mean,
-                    # sigma=np.radians(self.cfg.params.initial_sigma))
-                    sigma=np.radians(30)
-                    # sigma=z.sigma
-                )
-                ]
-                continue
-
-            closest_m = [np.abs(z.mean - m.mean) < np.radians(self.dt.params.max_theta_clearance) for m in measurements]
-
-            if np.sum(closest_m) == 0:
-                measurements.append(GaussianModel_1D(mean=z.mean,
-                                                     # sigma=np.radians(self.cfg.params.initial_sigma)
-                                                     sigma=np.radians(30)
-                                                     #  sigma=z.sigma
-                                                     ))
-                continue
-
-            for i, msk1 in zip(range(closest_m.__len__()), closest_m):
-                if msk1:
-                    obs_sigma = z.sigma + abs(z.sigma - measurements[i].sigma)
-                    # obs_sigma = z.sigma
-
-                    measurements[i].add_measurement(mean=z.mean, sigma=obs_sigma)
-        if prune_out:
-            return self.prone_out(measurements)
-        else:
-            return measurements
-
-    def estimate_from_list_pl(self, list_pl, measurements=None, use_room_ref=False, prune_out=True):
+        
+    def estimate_from_list_pl(self, list_pl, room_center, measurements=None, prune_out=True):
         if measurements is None:
             measurements = []
         for pl in tqdm(list_pl, desc="...Filtering Orientation"):
             # pl.was_used_for_orientation = True
 
             # ! Only planes over 0.9 explainability ratio are used
-            if self.dt.forced_inliers_ratio is None:
-                if pl.explained_ratio < self.dt.params.min_explainability_ratio:
-                    continue
-            
+            if pl.explained_ratio < self.dt.cfg.get("theta_estimation.min_explainability_ratio", 0.8):
+                continue
+
             dist = pl.distance - pl.pose.t.dot(pl.normal)
-            if use_room_ref:
-                orientation = pl.get_orientation_wrt_room_pose_ref()
-            else:
-                orientation = pl.orientation
+            orientation = pl.get_orientation_wrt_room_pose_ref(room_center)
 
             if measurements.__len__() < 1:
                 measurements = [GaussianModel_1D(
                     mean=orientation,
-                    sigma=np.radians(self.dt.params.initial_sigma))]
+                    sigma=np.radians(self.dt.cfg.get('theta_estimation.initial_sigma')))]
                 continue
 
-            closest_m = [np.abs(orientation - m.mean) < np.radians(self.dt.params.max_theta_clearance) for m in measurements]
+            closest_m = [np.abs(orientation - m.mean) < np.radians(self.dt.cfg.get('theta_estimation.max_clearance')) for m in measurements]
 
             if np.sum(closest_m) == 0:
-                measurements.append(GaussianModel_1D(mean=orientation, sigma=np.radians(self.dt.params.initial_sigma)))
+                measurements.append(GaussianModel_1D(
+                    mean=orientation, 
+                    sigma=np.radians(self.dt.cfg.get('theta_estimation.initial_sigma'))))
                 continue
 
             for i, msk1 in zip(range(closest_m.__len__()), closest_m):
                 if msk1:
-                    obs_sigma = np.radians(self.dt.params.common_sigma_measurement) + self.dt.params.dist_penalty*dist
+                    obs_sigma = np.radians(self.dt.cfg.get('theta_estimation.common_sigma')) + self.dt.cfg.get('theta_estimation.penalty')*dist
                     measurements[i].add_measurement(mean=orientation, sigma=obs_sigma)
         if prune_out:
             return self.prone_out(measurements)
         else:
             return measurements
-
-    def multiple_shuffle_estimations(self, list_ly):
-        lys = copy.deepcopy(list_ly)
-        for it in range(self.dt.params.multiple_shuffle_evaluation):
-            print_info("... Shuffle Iteration {}/{}".format(it, self.dt.params.multiple_shuffle_evaluation))
-            np.random.shuffle(lys)
-            theta_z = self.estimate_from_list_ly(list_ly=lys)
-            self.plot_gaussian_estimations(list_theta_z=theta_z, block=False)
-        plt.show(block=True)
-
-    def estimate_from_list_ly(self, list_ly, measurements=None):
-        from data_manager import DataManager
-        list_pl = DataManager.get_list_pl(list_ly)
-        return self.estimate_from_list_pl(list_pl, measurements=measurements)
 
     def prone_out(self, measurements):
         # ! Forcing only positive angles
@@ -156,7 +103,7 @@ class ThetaEstimator:
             if zhat.__len__() < 1:
                 zhat.append(z)
                 continue
-            closest_m = [np.abs(z.mean - m_.mean) < np.radians(self.dt.params.max_theta_clearance) for m_ in zhat]
+            closest_m = [np.abs(z.mean - m_.mean) < np.radians(self.dt.cfg.get('theta_estimation.max_clearance')) for m_ in zhat]
 
             if np.sum(closest_m) == 0:
                 zhat.append(z)
@@ -179,7 +126,7 @@ class ThetaEstimator:
         measurements = []
         for z in zhat:
             circular_CW = [
-                abs(z.mean - (m.mean - 2*np.pi)) < np.radians(self.dt.params.max_theta_clearance)
+                abs(z.mean - (m.mean - 2*np.pi)) < np.radians(self.dt.cfg.get('theta_estimation.max_clearance'))
                 for m in zhat
             ]
             if np.sum(circular_CW) == 0:
@@ -192,7 +139,7 @@ class ThetaEstimator:
 
                 else:
                     circular_CCW = [
-                        abs(z.mean - (m.mean + 2*np.pi)) < np.radians(self.dt.params.max_theta_clearance)
+                        abs(z.mean - (m.mean + 2*np.pi)) < np.radians(self.dt.cfg.get('theta_estimation.max_clearance'))
                         for m in zhat
                     ]
                     if np.sum(circular_CCW) > 0:
@@ -210,47 +157,3 @@ class ThetaEstimator:
 
         # return zhat
         # return [z for z in zhat if z.sigma < np.radians(self.cfg.params.initial_sigma*self.cfg.params.min_sigma_reduction)]
-
-    @staticmethod
-    def plot_gaussian_estimations(list_theta_z, block=True):
-        x = np.linspace(-1.1 * np.pi, 1.1 * np.pi, 1000)
-        plt.figure("Estimated Gaussian Orientations")
-        for z in list_theta_z:
-            plt.plot(np.degrees(x),
-                     GaussianModel_1D.visual_model(x, mean=z.mean, sigma=z.sigma),
-                     label=r'$\mu$:{0:.2f} - $\sigma$:{1:.02f}'.format(np.degrees(z.mean), np.degrees(z.sigma)))
-        plt.title("Estimated Gaussian Orientations")
-        if block:
-            plt.show()
-        else:
-            plt.draw()
-            plt.waitforbuttonpress(0.01)
-
-    @staticmethod
-    def plot_estimated_orientations(list_theta_z, block=True, caption="Estimated Orientations"):
-        fig = plt.figure(caption)
-        plt.clf()
-        ax = fig.add_subplot(111, projection='polar')
-        ax.set_theta_direction(-1)
-        ax.set_theta_offset(-np.pi/10)
-        for z in list_theta_z:
-            theta = z.mean
-            sigma2 = z.sigma/2
-            if z.sigma > np.radians(60):
-                continue
-            # ax.scatter(np.ones((100,)) * z.mean, np.linspace(0, 1, 100))
-            ax.plot([theta, theta], [0, 1], lw=1, marker="*", color="black")
-            plt.fill_between(
-                np.linspace(theta - sigma2, theta + sigma2, 100),
-                0,
-                0.95,
-                label="sigma:{0:2.2f}".format(np.degrees(z.sigma))
-            )
-
-        ax.set_title(caption)
-        plt.legend()
-        if block:
-            plt.show()
-        else:
-            plt.draw()
-            plt.waitforbuttonpress(0.001)

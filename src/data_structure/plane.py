@@ -38,6 +38,16 @@ class Plane:
 
         pl.set_orientation_and_line_dir()
         return pl
+    
+    
+    def get_distance_wrt_room_pose_ref(self, room_center):
+        return self.distance - room_center.dot(self.normal)
+
+    def get_orientation_wrt_room_pose_ref(self, room_center):
+        if self.get_distance_wrt_room_pose_ref(room_center) < 0:
+            return self.orientation-np.pi
+        else:
+            return self.orientation
 
     def set_orientation_from_theta(self, theta):
         self.orientation = theta
