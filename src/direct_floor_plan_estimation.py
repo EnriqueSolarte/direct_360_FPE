@@ -9,6 +9,7 @@ from utils.geometry_utils import find_N_peaks
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 class DirectFloorPlanEstimation:
 
     def __init__(self, data_manager):
@@ -40,15 +41,17 @@ class DirectFloorPlanEstimation:
             return layout.is_initialized
 
         if self.eval_new_room_creteria(layout):
-            # self.curr_room = self.select_room(layout)
-            self.curr_room = None
+            self.curr_room = self.select_room(layout)
             if self.curr_room is None:
                 # ! New Room in the system
                 self.curr_room = Room(self.dt)
                 # ! Initialize current room
                 if self.curr_room.initialize(layout):
                     self.list_rooms.append(room)
-                return 
+                    self.global_ocg_patch.list_patches.append(
+                        self.curr_room.local_ocg_patches
+                    )
+                return
 
         self.update_data(layout)
 
@@ -63,9 +66,37 @@ class DirectFloorPlanEstimation:
         self.add_layout(layout)
 
     def add_layout(self, layout):
+        """
+        Adds a new Layout to FPE class
+        """
+        assert layout.is_initialized, "Passed layout must be initialized first... "
+
+        # self.global_ocg_patch.list_patches.append(self.curr_room.local_ocg_patches)
         self.list_ly.append(layout)
         [self.list_pl.append(pl) for pl in layout.list_pl]
-        # self.global_ocg_patch.add_patch(layout.patch)
+
+    def select_room(self, layout):
+        """
+        Returns the most likely room based on the current layout camera pose
+        """
+        # ! Reading local OCGPatches (rooms)
+        selected_rooms = []
+        for ocg_room in self.global_ocg_patch.list_patches:
+            pose_uv = ocg_room.project_xyz_to_uv(
+                xyz_points=layout.pose_est.t.reshape((3, 1))
+            )
+            eval_pose = ocg_room.ocg_map[pose_uv[1, :], pose_uv[0, :]]/ocg_room.ocg_map.max()
+        
+            if eval_pose > self.dt.cfg["room_id.ocg_threshold"]:
+                selected_rooms.append(eval_pose)
+        
+        if selected_rooms.__len__() == 0:
+            # ! There is not any room for the passed layout
+            return None
+        else:
+            idx = np.argmax(selected_rooms)
+            return self.list_rooms[idx]
+    
 
     def initialize_layout(self, layout):
         """
@@ -103,7 +134,12 @@ class DirectFloorPlanEstimation:
         [self.list_pl.append(pl) for pl in layout.list_pl]
 
         # ! Initialize Global Patches
-        if not self.global_ocg_patch.initialize(layout.patch):
+        # > NOTE: Global Patches is build from Local OCGPatches defined in each room
+        # > Local OCGPatches in each Room is defined using Patches only.
+        # * The reason is because at ROOM level we want to aggregate Patches individually for each new Layout
+        # * at FPE level, we care about individuals ROOMS, i.e., we don't care how many LYs are en each room but
+        # * the aggregated OCG-map only
+        if not self.global_ocg_patch.initialize(self.curr_room.local_ocg_patches):
             return self.is_initialized
 
         # ! Only if the room is successfully initialized
@@ -116,14 +152,13 @@ class DirectFloorPlanEstimation:
         """
         Evaluates whether the passed layout triggers a new room
         """
-        if not layout.is_initialized:
-            raise ValueError("Layout must be initialized before...")
+        assert layout.is_initialized, "Layout must be initialized before..."
 
         pose_uv = self.curr_room.local_ocg_patches.project_xyz_to_uv(
             xyz_points=layout.pose_est.t.reshape((3, 1))
         )
-        room_ocg_map = self.curr_room.local_ocg_patches.ocg_map
-        
+        room_ocg_map = np.copy(self.curr_room.local_ocg_patches.ocg_map)
+
         # curr_room_idx = self.list_rooms.index(self.curr_room)
         # tmp_ocg = self.global_ocg_patch.ocg_map[:, :, curr_room_idx]
         tmp_ocg = room_ocg_map
@@ -131,14 +166,14 @@ class DirectFloorPlanEstimation:
         self.curr_room.p_pose.append(eval_pose)
         plt.figure(0)
         plt.clf()
-        plt.subplot(121)   
+        plt.subplot(121)
         room_ocg_map[pose_uv[1, :], pose_uv[0, :]] = -1
         plt.imshow(room_ocg_map)
-        plt.subplot(122)   
+        plt.subplot(122)
         plt.plot(self.curr_room.p_pose)
         plt.draw()
         plt.waitforbuttonpress(0.1)
-        
+
         if eval_pose < self.dt.cfg["room_id.ocg_threshold"]:
             return True
         else:

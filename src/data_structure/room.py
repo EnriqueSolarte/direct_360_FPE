@@ -32,6 +32,15 @@ class Room:
         return self.is_initialized
     
     def add_layout(self, layout):
+        """
+        Adds a new layout to the ROOM 
+        """
+        assert layout.is_initialized, "Passed layout must be initialized first... "
+        # ! Adding Layouts
         self.list_ly.append(layout)
+        # ! Adding Planes
         [self.list_pl.append(pl) for pl in layout.list_pl]
+        # ! Adding Patch
         self.local_ocg_patches.add_patch(layout.patch)
+        # ! Updating LOCAL OCG-map
+        self.local_ocg_patches.update_ocg_map2()

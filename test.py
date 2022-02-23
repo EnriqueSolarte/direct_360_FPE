@@ -16,11 +16,16 @@ def main(config_file):
 
     for ly in list_ly:
         fpe.estimate(ly)
-    
+
     plt.show()
 
     # list_pl = flatten_lists_of_lists([ly.list_pl for ly in list_ly if ly.list_pl.__len__() > 0])
     # plot_color_plc(np.hstack([ly.boundary for ly in list_pl]).T)
+    fpe.global_ocg_patch.update_bins()
+    fpe.global_ocg_patch.update_ocg_map()
+
+    plt.imshow(np.sum(fpe.global_ocg_patch.ocg_map, axis=2))
+    plt.show()
 
     print('done')
 

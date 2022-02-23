@@ -10,6 +10,30 @@ class OCGPatches:
     This class handles multiples Patches (defined from every Layout) by 
     aggregating, combining, and pruning them out properly.
     """
+    @property
+    def u_bins(self):
+        return self.__u_bins
+
+    @u_bins.setter
+    def u_bins(self, value):
+        if value is None:
+            return
+        self.__u_bins = value
+        self.W = int(self.__u_bins.size - 1)
+        self.uv_ref[0] = self.__u_bins[0]
+
+    @property
+    def v_bins(self):
+        return self.__v_bins
+
+    @v_bins.setter
+    def v_bins(self, value):
+        if value is None:
+            return
+        self.__v_bins = value
+        self.H = int(self.v_bins.size - 1)
+        self.uv_ref[1] = self.__v_bins[0]
+
 
     def __init__(self, data_manager):
         self.dt = data_manager
@@ -19,6 +43,9 @@ class OCGPatches:
         self.list_patches = []
         self.dynamic_bins = True
         self.is_initialized = False
+        self.H, self.W = None, None
+        self.uv_ref = [None, None]
+
 
     def project_xyz_to_uv(self, xyz_points):
 
@@ -54,12 +81,8 @@ class OCGPatches:
         """
         Initializes the OCGPatch class by using the passed patch
         """
-        self.is_initialized = False
-        if not patch.is_initialized:
-            print("Current patch is not initialized... Initializing...!")
-            if not patch.initialize():
-                return self.is_initialized
-
+        assert patch.is_initialized, "Passed patch mst be initialized first..."
+    
         # self.ocg_map = np.expand_dims(patch.ocg_map, 2)
         self.ocg_map = np.copy(patch.ocg_map)
         self.list_patches.append(patch)
@@ -85,7 +108,9 @@ class OCGPatches:
         return self.u_bins, self.v_bins
 
     def update_ocg_map(self):
-
+        """
+        Updates the OCG map by aggregating layers of registered Patches (H, W, Layers)
+        """
         H, W = self.get_shape()
         self.ocg_map = np.zeros((H, W, self.list_patches.__len__()))
         for idx, patch in enumerate(self.list_patches):
@@ -99,6 +124,9 @@ class OCGPatches:
             self.ocg_map[uv[1]:uv[1]+h, uv[0]:uv[0]+w, idx] = patch.ocg_map
 
     def update_ocg_map2(self):
+        """
+        Updates the OCG map by aggregating Patches using a temporal weight constraint
+        """
         H, W = self.get_shape()
         self.ocg_map = np.zeros((H, W))
         temporal_weight = np.linspace(1, 0, self.list_patches.__len__())
@@ -114,12 +142,15 @@ class OCGPatches:
         # self.ocg_map = self.ocg_map/self.ocg_map.max()
 
     def add_patch(self, patch):
+        """
+        Adds a new Patch and Updated the bins definitions
+        """
         self.list_patches.append(patch)
         self.update_bins()
-        self.update_ocg_map2()
-
+        
     def get_shape(self):
         return (self.v_bins.size-1, self.u_bins.size-1)
+
 
 
 class Patch:
