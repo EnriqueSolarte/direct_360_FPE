@@ -49,6 +49,8 @@ room_id.neighbor_distance: 5
 room_id.min_kf_pre_room: 3
 room_id.ocg_threshold: 0.5
 room_id.clipped_ratio: 5
+room_id.iuo_overlapping_allowed: 0.3
+
 
 
 

@@ -34,7 +34,6 @@ class OCGPatches:
         self.H = int(self.v_bins.size - 1)
         self.uv_ref[1] = self.__v_bins[0]
 
-
     def __init__(self, data_manager):
         self.dt = data_manager
         self.v_bins = None
@@ -45,7 +44,6 @@ class OCGPatches:
         self.is_initialized = False
         self.H, self.W = None, None
         self.uv_ref = [None, None]
-
 
     def project_xyz_to_uv(self, xyz_points):
 
@@ -82,7 +80,7 @@ class OCGPatches:
         Initializes the OCGPatch class by using the passed patch
         """
         assert patch.is_initialized, "Passed patch mst be initialized first..."
-    
+
         # self.ocg_map = np.expand_dims(patch.ocg_map, 2)
         self.ocg_map = np.copy(patch.ocg_map)
         self.list_patches.append(patch)
@@ -107,12 +105,12 @@ class OCGPatches:
         self.v_bins = np.mgrid[min_points[1]:max_points[1]+grid_size: grid_size]
         return self.u_bins, self.v_bins
 
-    def update_ocg_map(self):
+    def update_ocg_map(self, binary_map=False):
         """
-        Updates the OCG map by aggregating layers of registered Patches (H, W, Layers)
+        Updates the OCG map by aggregating layers of registered Patches (layers, H, W)
         """
         H, W = self.get_shape()
-        self.ocg_map = np.zeros((H, W, self.list_patches.__len__()))
+        self.ocg_map = np.zeros((self.list_patches.__len__(), H, W))
         for idx, patch in enumerate(self.list_patches):
             h, w = patch.H, patch.W
             uv = project_xyz_to_uv(
@@ -121,7 +119,11 @@ class OCGPatches:
                 v_bins=self.v_bins
             ).squeeze()
 
-            self.ocg_map[uv[1]:uv[1]+h, uv[0]:uv[0]+w, idx] = patch.ocg_map
+            self.ocg_map[idx, uv[1]:uv[1]+h, uv[0]:uv[0]+w] = patch.ocg_map
+
+        if binary_map:
+            self.ocg_map[self.ocg_map > self.dt.cfg.get("room_id.ocg_threshold", 0.5)] = 1
+            self.ocg_map = self.ocg_map.astype(np.int)
 
     def update_ocg_map2(self):
         """
@@ -147,10 +149,9 @@ class OCGPatches:
         """
         self.list_patches.append(patch)
         self.update_bins()
-        
+
     def get_shape(self):
         return (self.v_bins.size-1, self.u_bins.size-1)
-
 
 
 class Patch:

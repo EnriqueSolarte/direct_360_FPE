@@ -29,3 +29,14 @@ def project_xyz_to_uv(xyz_points, u_bins, v_bins):
                 for p in xyz_points[2, :]]
     
     return np.vstack((x_cell_u, z_cell_v))
+
+def compute_iou_ocg_map(ocg_map_target, ocg_map_estimation):
+    """
+    Estimates the iou between two given ocg maps
+    """
+    assert ocg_map_estimation.shape == ocg_map_target.shape
+
+    overlap = ocg_map_target * ocg_map_estimation
+    union = ocg_map_target + ocg_map_estimation
+    union[union > 0] = 1 
+    return np.sum(overlap)/np.sum(union)

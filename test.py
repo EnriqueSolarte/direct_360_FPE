@@ -24,7 +24,7 @@ def main(config_file):
     fpe.global_ocg_patch.update_bins()
     fpe.global_ocg_patch.update_ocg_map()
 
-    plt.imshow(np.sum(fpe.global_ocg_patch.ocg_map, axis=2))
+    plt.imshow(np.sum(fpe.global_ocg_patch.ocg_map, axis=0))
     plt.show()
 
     print('done')

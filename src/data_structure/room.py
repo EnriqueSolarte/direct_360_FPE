@@ -1,3 +1,4 @@
+from unittest.mock import patch
 from .ocg_patch import OCGPatches
 
 class Room:
@@ -12,7 +13,15 @@ class Room:
         
         # ! For Tracking pose likelihood
         self.p_pose = []
+        # !Used for iSPA and overlapping rooms
+        self.status = False
     
+    def set_status(self, flag):
+        """
+        Easy function to set ready instance
+        """
+        self.status = flag
+        
     def initialize(self, layout):
         """
         Room class initializer
@@ -31,6 +40,31 @@ class Room:
         
         return self.is_initialized
     
+    
+    def add_metadata(self, external_room):
+        """
+        Adds the METADATA from an external_room 
+        """
+        [(self.list_ly.append(ly),
+         self.local_ocg_patches.list_patches.append(patch),
+         self.p_pose.append(pose)
+          )for ly, patch, pose in 
+         zip(
+             external_room.list_ly,
+             external_room.local_ocg_patches.list_patches,
+             external_room.p_pose
+         )
+         ]
+        # ! Since the number of planes does not necessary matches the number of ly
+        [self.list_pl.append(pl) for pl in external_room.list_pl]
+    
+    
+    def refresh(self):
+        self.is_initialized = True
+        self.local_ocg_patches.is_initialized = True
+        self.local_ocg_patches.update_bins()
+        self.local_ocg_patches.update_ocg_map2()
+        
     def add_layout(self, layout):
         """
         Adds a new layout to the ROOM 
