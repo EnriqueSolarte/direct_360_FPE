@@ -6,6 +6,7 @@ from utils.enum import CAM_REF
 import numpy as np
 from utils.data_utils import flatten_lists_of_lists
 import matplotlib.pyplot as plt
+from utils.visualization.room_utils import plot_curr_room_by_patches, plot_all_rooms_by_patches
 
 
 def main(config_file):
@@ -17,10 +18,11 @@ def main(config_file):
     for ly in list_ly:
         fpe.estimate(ly)
 
-    plt.show()
-
     # list_pl = flatten_lists_of_lists([ly.list_pl for ly in list_ly if ly.list_pl.__len__() > 0])
     # plot_color_plc(np.hstack([ly.boundary for ly in list_pl]).T)
+    plot_all_rooms_by_patches(fpe)
+    plt.show()
+
     fpe.global_ocg_patch.update_bins()
     fpe.global_ocg_patch.update_ocg_map()
 

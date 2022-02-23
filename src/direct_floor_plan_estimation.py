@@ -4,9 +4,9 @@ from src.solvers.plane_estimator import PlaneEstimator
 from src.data_structure import OCGPatches, Room
 from utils.geometry_utils import find_N_peaks
 import numpy as np
-import matplotlib.pyplot as plt
 from utils.ocg_utils import compute_iou_ocg_map
 from utils.enum import ROOM_STATUS
+from utils.visualization.room_utils import plot_curr_room_by_patches, plot_all_rooms_by_patches
 
 
 class DirectFloorPlanEstimation:
@@ -39,7 +39,7 @@ class DirectFloorPlanEstimation:
         if not self.initialize_layout(layout):
             return layout.is_initialized
 
-        if self.eval_new_room_creteria(layout):
+        if self.eval_new_room_creation(layout):
             self.eval_room_overlapping()
             self.curr_room = self.select_room(layout)
             if self.curr_room is None:
@@ -54,6 +54,8 @@ class DirectFloorPlanEstimation:
                 return
 
         self.update_data(layout)
+        # plot_curr_room_by_patches(self)
+        plot_all_rooms_by_patches(self)
 
     def update_data(self, layout):
         """
@@ -147,7 +149,7 @@ class DirectFloorPlanEstimation:
         self.is_initialized = True
         return self.is_initialized
 
-    def eval_new_room_creteria(self, layout):
+    def eval_new_room_creation(self, layout):
         """
         Evaluates whether the passed layout triggers a new room
         """
@@ -163,15 +165,6 @@ class DirectFloorPlanEstimation:
         tmp_ocg = room_ocg_map
         eval_pose = tmp_ocg[pose_uv[1, :], pose_uv[0, :]]/tmp_ocg.max()
         self.curr_room.p_pose.append(eval_pose)
-        plt.figure(0)
-        plt.clf()
-        plt.subplot(121)
-        room_ocg_map[pose_uv[1, :], pose_uv[0, :]] = -1
-        plt.imshow(room_ocg_map)
-        plt.subplot(122)
-        plt.plot(self.curr_room.p_pose)
-        plt.draw()
-        plt.waitforbuttonpress(0.1)
 
         if eval_pose < self.dt.cfg["room_id.ocg_threshold"]:
             return True
@@ -248,7 +241,7 @@ class DirectFloorPlanEstimation:
         if list_rooms.__len__() > 0:
             self.list_rooms = list_rooms
             self.global_ocg_patch.list_patches = [r.local_ocg_patches for r in list_rooms]
-            
+
     def merge_rooms(self, room_a, room_b):
         """
         Merge the data of the passed rooms as follows
