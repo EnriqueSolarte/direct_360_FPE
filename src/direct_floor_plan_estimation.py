@@ -53,8 +53,8 @@ class DirectFloorPlanEstimation:
 
         self.update_data(layout)
         # plot_curr_room_by_patches(self)
-        plot_all_rooms_by_patches(self)
-        plot_estimated_orientations(self.curr_room.theta_z)
+        # plot_all_rooms_by_patches(self)
+        # plot_estimated_orientations(self.curr_room.theta_z)
 
     def update_data(self, layout):
         """
@@ -82,21 +82,21 @@ class DirectFloorPlanEstimation:
         """
         # ! Reading local OCGPatches (rooms)
         selected_rooms = []
-        for ocg_room in self.global_ocg_patch.list_patches:
+        for idx, ocg_room in enumerate(self.global_ocg_patch.list_patches):
             pose_uv = ocg_room.project_xyz_to_uv(
                 xyz_points=layout.pose_est.t.reshape((3, 1))
             )
             eval_pose = ocg_room.ocg_map[pose_uv[1, :], pose_uv[0, :]]/ocg_room.ocg_map.max()
 
             if eval_pose > self.dt.cfg["room_id.ocg_threshold"]:
-                selected_rooms.append(eval_pose)
+                selected_rooms.append((eval_pose, self.list_rooms[idx]))
 
         if selected_rooms.__len__() == 0:
             # ! There is not any room for the passed layout
             return None
         else:
-            idx = np.argmax(selected_rooms)
-            return self.list_rooms[idx]
+            likelihood = max(selected_rooms, key=lambda p: p[0])
+            return likelihood[1]
 
     def initialize_layout(self, layout):
         """
