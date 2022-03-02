@@ -1,7 +1,8 @@
+import copy
+import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 from skimage.color import rgb2hsv, hsv2rgb
-import copy
 from src.solvers.theta_estimator import GaussianModel_1D
 
 
@@ -90,3 +91,57 @@ def plot_estimated_orientations(list_theta_z, block=False, caption="Estimated Or
     else:
         plt.draw()
         plt.waitforbuttonpress(0.001)
+
+
+def get_colors(num_colors):
+    ''' return colors with shape (num_colors, 3) '''
+    colors = np.linspace(0, 0.5, num_colors)
+    ones = np.ones_like(colors)
+    colors = hsv2rgb(np.stack([colors, ones, ones], axis=1))
+    colors = np.clip(colors * 255, 0, 255).astype(np.int32)
+    return colors
+
+
+def plot_floor_plan(room_list, ocg, points_gt=None, planes=None):
+    '''
+        room_list: list of room_corners with shape (2, N)
+        ocg: OCGPatches objects for mapping 3D into 2D space
+    '''
+
+    height, width = ocg.get_shape()
+    image = np.zeros((height, width, 3), dtype=np.uint8)
+    image.fill(255)
+    if points_gt is not None:
+        density_map = ocg.project_xyz_points_to_hist(points_gt)
+        density_map = np.stack([density_map, density_map, density_map], axis=-1)
+        density_map /= density_map.max()
+        density_map *= 255
+        density_map = np.clip(np.round(density_map), 0, 255).astype(np.uint8)
+        density_map = 255 - density_map
+        image += density_map
+    # if planes is not None:
+    #     density_map = ocg.project_xyz_points_to_hist(planes.T)
+
+    colors = get_colors(len(room_list))
+    for room_idx, room_corners in enumerate(room_list):
+        # TODO: Deal with the scale difference between GT points and corners
+        # room_corners *= scale
+        N = room_corners.shape[1]
+        if room_corners.shape[0] == 2:
+            # Make xz (2, N) -> xyz (3, N)
+            ones = np.ones_like(room_corners[0, :])
+            room_corners = np.stack([room_corners[0, :], ones, room_corners[1, :]], axis=0)
+        room_corners = ocg.project_xyz_to_uv(room_corners)
+        # color = tuple((colors[room_idx][0], colors[room_idx][1], colors[room_idx][2]))
+        color = colors[room_idx].tolist()
+        for i in range(N):
+            u1, v1 = room_corners[:, i]
+            u2, v2 = room_corners[:, (i+1) % N]
+            cv2.line(image, (u1, v1), (u2, v2), color, 1)
+            cv2.circle(image, (u1, v1), 1, color, -1)
+            cv2.circle(image, (u2, v2), 1, color, -1)
+    plt.figure("floor plan result")
+    plt.clf()
+    plt.imshow(image)
+    plt.draw()
+    plt.waitforbuttonpress(0.1)

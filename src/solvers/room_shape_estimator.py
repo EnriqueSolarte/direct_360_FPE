@@ -457,7 +457,7 @@ class SPABasic:
 
         # Major plane orientation condition
         if self.cfg['room_shape_opt.use_angle_constraint']:
-            unit_vecs = vector_matrix / np.expand_dims(dist_matrix, -1)
+            unit_vecs = vector_matrix / np.expand_dims(dist_matrix+1e-8, -1)
             theta_vecs = theta_vecs.reshape(-1, 2, 1)
             dot = np.dot(unit_vecs, theta_vecs).squeeze(-1)     # size, size, theta_size
             min_cos_angle = np.min(np.abs(dot), axis=-1)        # size*size
@@ -808,7 +808,7 @@ class SPARefine(SPABasic):
 
         # Major plane orientation condition
         if self.cfg['room_shape_opt.use_angle_constraint']:
-            unit_vecs = vector_matrix / np.expand_dims(dist_matrix, -1)
+            unit_vecs = vector_matrix / np.expand_dims(dist_matrix+1e-8, -1)
             theta_vecs = theta_vecs.reshape(-1, 2, 1)
             dot = np.dot(unit_vecs, theta_vecs).squeeze(-1)     # size, size, theta_size
             min_cos_angle = np.min(np.abs(dot), axis=-1)        # size*size

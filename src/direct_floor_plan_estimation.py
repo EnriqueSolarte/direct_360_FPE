@@ -1,11 +1,15 @@
+import numpy as np
+from tqdm import tqdm
+
 from src.scale_recover import ScaleRecover
 from src.solvers.plane_estimator import PlaneEstimator
 from src.data_structure import OCGPatches, Room
 from utils.geometry_utils import find_N_peaks
-import numpy as np
 from utils.ocg_utils import compute_iou_ocg_map
 from utils.enum import ROOM_STATUS
-from utils.visualization.room_utils import plot_curr_room_by_patches, plot_all_rooms_by_patches, plot_estimated_orientations
+from utils.visualization.room_utils import plot_curr_room_by_patches
+from utils.visualization.room_utils import plot_all_rooms_by_patches
+from utils.visualization.room_utils import plot_estimated_orientations
 
 
 class DirectFloorPlanEstimation:
@@ -42,7 +46,9 @@ class DirectFloorPlanEstimation:
             prev_room = self.curr_room
             self.curr_room = self.select_room(layout)
             if self.curr_room is None:
-                out_dict = prev_room.compute_room_shape()
+                # Estimate room shape sequentially
+                # TODO: Compute room shape sequentially
+                # out_dict = prev_room.compute_room_shape()
 
                 # ! New Room in the system
                 self.curr_room = Room(self.dt)
@@ -262,7 +268,7 @@ class DirectFloorPlanEstimation:
         new_room.add_metadata(room_b)
         new_room.refresh()
 
-        new_room.compute_orientations() 
+        new_room.compute_orientations()
         new_room.set_status(ROOM_STATUS.MERGED)
 
         room_a.set_status(ROOM_STATUS.FOR_DELETION)
@@ -273,3 +279,13 @@ class DirectFloorPlanEstimation:
 
         if room_a is self.curr_room or room_b is self.curr_room:
             self.curr_room = new_room
+
+    def compute_room_shape_all(self):
+        ''' Compute the room shape for all the rooms at once '''
+        room_corners = []
+        for room in tqdm(self.list_rooms):
+            if room.status == ROOM_STATUS.FOR_DELETION:
+                continue
+            out_dict = room.compute_room_shape()
+            room_corners.append(out_dict['corners_xz'].T)
+        return room_corners
