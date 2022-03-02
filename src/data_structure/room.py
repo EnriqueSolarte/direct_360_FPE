@@ -1,6 +1,6 @@
-from unittest.mock import patch
 from .ocg_patch import OCGPatches
 from src.solvers.theta_estimator import ThetaEstimator
+from src.solvers.room_shape_estimator import RoomShapeEstimator
 import numpy as np
 
 
@@ -12,6 +12,7 @@ class Room:
         self.is_initialized = False
         self.local_ocg_patches = OCGPatches(self.dt)
         self.theta_estimator = ThetaEstimator(self.dt)
+        self.room_shape_estimator = RoomShapeEstimator(self.dt)
         self.list_corners = []
         self.boundary = None
 
@@ -49,7 +50,7 @@ class Room:
 
     def add_metadata(self, external_room):
         """
-        Adds the METADATA from an external_room 
+        Adds the METADATA from an external_room
         """
         [(self.list_ly.append(ly),
           self.local_ocg_patches.list_patches.append(patch),
@@ -76,15 +77,15 @@ class Room:
         """
         # return
         self.room_center = np.mean(np.vstack([ly.pose_est.t for ly in self.list_ly]), axis=0)
-        
+
         self.theta_z = self.theta_estimator.estimate_from_list_pl(
-            list_pl=self.list_pl, 
+            list_pl=self.list_pl,
             room_center=self.room_center
-        )        
-        
+        )
+
     def add_layout(self, layout):
         """
-        Adds a new layout to the ROOM 
+        Adds a new layout to the ROOM
         """
         assert layout.is_initialized, "Passed layout must be initialized first... "
         # ! Adding Layouts
@@ -95,6 +96,8 @@ class Room:
         self.local_ocg_patches.add_patch(layout.patch)
         # ! Updating LOCAL OCG-map
         self.local_ocg_patches.update_ocg_map2()
-        #! Compute Orientations
+        # ! Compute Orientations
         self.compute_orientations()
-       
+
+    def compute_room_shape(self):
+        return self.room_shape_estimator.estimate(self)

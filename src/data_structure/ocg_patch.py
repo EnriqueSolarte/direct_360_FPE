@@ -1,5 +1,6 @@
 import numpy as np
 import cv2
+from skimage.transform import resize
 from utils.geometry_utils import extend_array_to_homogeneous
 from utils.ocg_utils import compute_uv_bins, project_xyz_to_uv
 from src.data_structure import layout
@@ -44,20 +45,20 @@ class OCGPatches:
         self.is_initialized = False
         self.H, self.W = None, None
         self.uv_ref = [None, None]
+        self.grid_size = self.dt.cfg['room_id.grid_size']
 
     def project_xyz_to_uv(self, xyz_points):
 
-        grid_size = self.dt.cfg["room_id.grid_size"]
-        x_cell_u = [np.argmin(abs(p - self.u_bins-grid_size*0.5)) % self.get_shape()[1]
+        x_cell_u = [np.argmin(abs(p - self.u_bins-self.grid_size*0.5)) % self.get_shape()[1]
                     for p in xyz_points[0, :]]
 
         if xyz_points.shape[0] == 2:
             # xyz_points: (2, N)
-            z_cell_v = [np.argmin(abs(p - self.v_bins-grid_size*0.5)) % self.get_shape()[0]
+            z_cell_v = [np.argmin(abs(p - self.v_bins-self.grid_size*0.5)) % self.get_shape()[0]
                         for p in xyz_points[1, :]]
         else:
             # xyz_points: (3, N)
-            z_cell_v = [np.argmin(abs(p - self.v_bins-grid_size*0.5)) % self.get_shape()[0]
+            z_cell_v = [np.argmin(abs(p - self.v_bins-self.grid_size*0.5)) % self.get_shape()[0]
                         for p in xyz_points[2, :]]
         # ! this potentially can change the order of the points
         # if unique:
@@ -74,6 +75,18 @@ class OCGPatches:
         ys = np.zeros_like(xs)
         zs = self.v_bins[uv_points[1, :]] + self.grid_size * 0.5
         return np.vstack([xs, ys, zs])
+
+    def project_xyz_points_to_hist(self, xyz_points):
+        x = xyz_points[0, :]
+        if xyz_points.shape[0] == 2:
+            # (x, z)
+            z = xyz_points[1, :]
+        else:
+            # (x, y, z)
+            z = xyz_points[2, :]
+        grid, _, _ = np.histogram2d(z, x, bins=(self.v_bins, self.u_bins))
+
+        return grid
 
     def initialize(self, patch):
         """
@@ -98,11 +111,10 @@ class OCGPatches:
                           for patch in self.list_patches
                           ])
 
-        grid_size = self.dt.cfg["room_id.grid_size"]
         min_points = np.min(bins, axis=0)[0:2]
         max_points = np.max(bins, axis=0)[2:4]
-        self.u_bins = np.mgrid[min_points[0]:max_points[0]+grid_size: grid_size]
-        self.v_bins = np.mgrid[min_points[1]:max_points[1]+grid_size: grid_size]
+        self.u_bins = np.mgrid[min_points[0]:max_points[0]+self.grid_size: self.grid_size]
+        self.v_bins = np.mgrid[min_points[1]:max_points[1]+self.grid_size: self.grid_size]
         return self.u_bins, self.v_bins
 
     def update_ocg_map(self, binary_map=False):
@@ -152,6 +164,35 @@ class OCGPatches:
 
     def get_shape(self):
         return (self.v_bins.size-1, self.u_bins.size-1)
+
+    def get_mask(self):
+        ocg_map = self.ocg_map
+        ocg_map = ocg_map / np.max(ocg_map)
+        mask = ocg_map > self.dt.cfg.get("room_id.ocg_threshold", 0.5)
+        return mask
+
+    def resize(self, scale):
+        v_bins = self.v_bins
+        u_bins = self.u_bins
+        v_bins = self.resize_bins(self.v_bins, scale)
+        u_bins = self.resize_bins(self.u_bins, scale)
+
+        height, width = self.get_shape()
+        print(f'Origin size: {height} {width}')
+
+        height = round(height * scale)
+        width = round(width * scale)
+        print(f'After resize size: {height} {width}')
+
+        self.v_bins = v_bins
+        self.u_bins = u_bins
+        self.ocg_map = resize(self.ocg_map, (height, width))
+        self.grid_size = u_bins[1] - u_bins[0]
+
+    def resize_bins(self, bins, scale):
+        num = round((len(bins) - 1) * scale) + 1
+        new_bins = np.linspace(bins[0], bins[-1], num)
+        return new_bins
 
 
 class Patch:

@@ -39,8 +39,11 @@ class DirectFloorPlanEstimation:
 
         if self.eval_new_room_creation(layout):
             self.eval_room_overlapping()
+            prev_room = self.curr_room
             self.curr_room = self.select_room(layout)
             if self.curr_room is None:
+                out_dict = prev_room.compute_room_shape()
+
                 # ! New Room in the system
                 self.curr_room = Room(self.dt)
                 # ! Initialize current room
