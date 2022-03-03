@@ -135,12 +135,12 @@ class ScaleRecover:
 
         return True
 
-    def estimate_vo_and_gt_scale(self, list_ly):
+    def estimate_vo_and_gt_scale(self):
         """
         Estimates VO-scale and GT-scale using entropy optimization and gt camera poses
         """
 
-        self.estimate_vo_scale(list_ly)
+        self.estimate_vo_scale()
         self.gt_scale = self.gt_scale_recover.estimate(self)
 
         return self.gt_scale, self.vo_scale
