@@ -1,6 +1,8 @@
 import os
 import glob
+import json
 import numpy as np
+from plyfile import PlyData, PlyElement
 from tqdm import tqdm
 from utils.camera_models.sphere import Sphere
 from utils.enum import *
@@ -15,9 +17,9 @@ class DataManager:
         self.cfg = cfg
         self.set_paths()
         self.load_data()
-        
+
         self.list_ly = []
-        
+
         print("DataManager successfully loaded...")
         print(f"Scene Category: {self.cfg['scene_category']}")
         print(f"Scene: {self.scene_name}")
@@ -32,7 +34,7 @@ class DataManager:
             self.vo_dir = glob.glob(os.path.join(self.mp3d_fpe_dir, 'vo_*'))[0]
         except:
             raise ValueError("Data_manager couldn't access to the data..")
-        
+
     def load_data(self):
         """
         Loads all data for DataManager
@@ -45,14 +47,18 @@ class DataManager:
             # ! List of camera poses
             self.load_camera_poses()
 
-            #! List of LY estimations
+            # ! List of LY estimations
             self.list_ly_npy = [os.path.join(self.vo_dir, self.cfg['ly_model'], f'{f}.npy') for f in self.list_kf]
 
             # ! List of RGB images
             self.list_rgb_img = [os.path.join(self.mp3d_fpe_dir, f'rgb/{f}.png') for f in self.list_kf]
 
-            # !List of DepthGT maps
+            # ! List of DepthGT maps
             self.list_depth_maps = [os.path.join(self.mp3d_fpe_dir, f'depth/tiff/{f}.tiff') for f in self.list_kf]
+
+            # ! Load GT floor plan & point cloud
+            self.room_corners, self.axis_corners = self.load_fp_gt(os.path.join(self.mp3d_fpe_dir, 'label.json'))
+            self.pcl_gt = self.load_points_gt(os.path.join(self.mp3d_fpe_dir, 'pcl.ply'))
 
             self.cam = Sphere(shape=self.cfg['image_resolution'])
         except:
@@ -86,6 +92,27 @@ class DataManager:
         self.poses_gt = np.stack(
             list(read_trajectory(gt_poses_file).values()))[idx, :, :]
 
+    def load_fp_gt(self, fn):
+        with open(fn, 'r') as f:
+            d = json.load(f)
+            room_list = d['room_corners']
+            room_corners = []
+            for corners in room_list:
+                corners = np.asarray([[float(x[0]), float(x[1])] for x in corners])
+                room_corners.append(corners)
+            axis_corners = d['axis_corners']
+            axis_corners = np.asarray([[float(x[0]), float(x[1])]
+                                        for x in axis_corners])
+        return room_corners, axis_corners
+
+    def load_points_gt(self, fn):
+        plydata = PlyData.read(fn)
+        v = np.array([list(x) for x in plydata.elements[0]])
+        points = np.ascontiguousarray(v[:, :3])
+        points[:, 0:3] = points[:, [0, 2, 1]]
+        colors = np.ascontiguousarray(v[:, 3:6], dtype=np.float32) / 255
+        return np.concatenate((points, colors), axis=1)
+
     def get_list_ly(self, cam_ref=CAM_REF.CC):
         """
         Returns a list of layouts (Layout class) for the scene 
@@ -109,9 +136,9 @@ class DataManager:
             # ! Note: HorizonNet defines in other reference floor & ceiling (sign are different)
             # ! Possible BUG in HorizonNet floor--> ceiling
             data_ly[(0, 1), :] = -data_ly[(1, 0), :]
-            
+
             bearings_phi = data_ly[0, :]
-            
+
             bearings = get_bearings_from_phi_coords(phi_coords=bearings_phi)
 
             # !Projecting bearing to 3D as pcl --> boundary
