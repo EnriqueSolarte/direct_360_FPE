@@ -28,6 +28,7 @@ def main(config_file):
     corners_list = fpe.compute_room_shape_all()
     plot_floor_plan(corners_list, fpe.global_ocg_patch)
 
+    plt.figure('Global OCG Map')
     plt.imshow(np.sum(fpe.global_ocg_patch.ocg_map, axis=0))
     plt.show()
 
