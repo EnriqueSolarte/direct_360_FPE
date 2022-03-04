@@ -2,7 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 from tqdm import tqdm
-
 from config import *
 
 
@@ -29,13 +28,12 @@ class GT_ScaleRecover:
         return np.sum(error**2)
 
     def estimate(self, scale_recover):
+        # ! Getting list of GT and estimated poses
         self.gt_poses = [
-            gt[0:3, 3].reshape((3, 1))
-            for gt in scale_recover.dataset.gt.kf_poses
+            ly.pose_gt.t for ly in scale_recover.dt.list_ly
         ]
         self.st_poses = [
-            st[0:3, 3].reshape((3, 1))
-            for st in scale_recover.dataset.estimated_poses
+            ly.pose_est.t for ly in scale_recover.dt.list_ly
         ]
 
         assert self.gt_poses.__len__() == self.st_poses.__len__()
@@ -44,7 +42,8 @@ class GT_ScaleRecover:
 
         res = minimize(self.scale_loss, initial_guess, method='nelder-mead')
 
-        # plot_list_pcl((np.hstack(self.gt_poses), res.x[0]*np.hstack(self.st_poses)), (1, 1))
+        # from utils.visualization.vispy_utils import plot_list_pcl
+        # plot_list_pcl((np.vstack(self.gt_poses).T, res.x[0]*np.vstack(self.st_poses).T))
 
-        self.gt_scale = res.x[0] / scale_recover.vo_scale
+        self.gt_scale = res.x[0]
         return self.gt_scale

@@ -125,8 +125,13 @@ class DirectFloorPlanEstimation:
         Initializes the system
         """
         self.is_initialized = False
-        if not self.scale_recover.estimate_vo_and_gt_scale():
-            return self.is_initialized
+        
+        if self.dt.cfg.get("scale_recover.apply_gt_scale", False):       
+            if not self.scale_recover.estimate_vo_and_gt_scale():
+                return self.is_initialized
+        else:
+            if not self.scale_recover.estimate_vo_scale():
+                return self.is_initialized
 
         # ! Create very first Room
         self.curr_room = Room(self.dt)

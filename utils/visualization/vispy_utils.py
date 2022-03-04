@@ -1,9 +1,14 @@
 
+from cv2 import sampsonDistance
 from vispy.visuals.transforms import STTransform, MatrixTransform
 from pyquaternion import Quaternion
 import numpy as np
 import vispy
 from vispy import visuals, scene
+import sys
+from utils.image_utils import get_color_list
+from zmq import DEALER
+
 
 class CameraPoseVisual:
     def __init__(self, size=0.5, width=2, view=None):
@@ -154,3 +159,20 @@ def plot_color_plc(points,
         vispy.app.run()
     else:
         return view
+
+
+def plot_list_pcl(list_pcl, size=1):
+    """
+    Plot the list of pcl (3, n) by the passed sizes
+    """
+
+    colors = get_color_list(number_of_colors=list_pcl.__len__())
+    color_pcl = []
+    for i, pcl in enumerate(list_pcl):
+        color_pcl.append(np.ones_like(pcl)*colors[:, i].reshape(3, 1))
+    
+    plot_color_plc(
+        points=np.hstack(list_pcl).T,
+        color=np.hstack(color_pcl).T,
+        size=size
+    )

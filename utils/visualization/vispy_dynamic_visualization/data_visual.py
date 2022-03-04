@@ -6,7 +6,6 @@ from vispy.scene.visuals import Text
 from vispy import app, scene, io
 import numpy as np
 from utils.image_utils import get_color_list
-from visualization.vispy_utils import CameraPoseVisual
 
 
 class Visualization:

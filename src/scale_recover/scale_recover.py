@@ -62,7 +62,7 @@ class ScaleRecover:
 
             max_scale = 50 * self.dt.cfg["scale_recover.scale_step"]
             min_scale = -50 * self.dt.cfg["scale_recover.scale_step"]
-          
+
             scale = self.vo_scale_recover.estimate_scale(
                 # !Estimation using coarse-to-fine approach and only the last planes
                 list_ly=batch,
@@ -142,5 +142,9 @@ class ScaleRecover:
 
         self.estimate_vo_scale()
         self.gt_scale = self.gt_scale_recover.estimate(self)
+
+        #* We are assuming that by estimating vo and gt scale is because we want to 
+        # * apply GT scale
+        [ly.apply_gt_scale(self.gt_scale) for ly in self.dt.list_ly]
 
         return self.gt_scale, self.vo_scale
