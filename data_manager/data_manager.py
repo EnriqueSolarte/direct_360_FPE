@@ -10,6 +10,9 @@ from utils.io import read_trajectory, read_ply
 from utils.geometry_utils import get_bearings_from_phi_coords, extend_array_to_homogeneous
 from src.data_structure import Layout
 from skimage.measure import points_in_poly
+import datetime
+import sys
+import yaml
 
 
 class DataManager:
@@ -204,3 +207,26 @@ class DataManager:
 
         self.list_ly = list_ly
         return list_ly
+
+    def save_config(self, filename):
+        """
+        Saves the current configuration (settings) in a yaml file
+        """
+        time = datetime.datetime.now()
+
+        timestamp = str(time.year) + "-" + str(time.month) + "-" + str(time.day) + \
+            "." + str(time.hour) + '.' + str(time.minute) + '.' + str(time.second)
+        original_stdout = sys.stdout  # Save a reference to the original standard output
+
+        with open(filename, "w") as file:
+            yaml.dump(self.cfg, file)
+
+            sys.stdout = file  # Change the standard output to the file we created.
+
+            # ! This is the comment at the end of every generated config file
+            print('\n\n# VSLAB @ National Tsing Hua University')
+            print("# Direct Floor Plan Estimation")
+            print("# This config file has been generated automatically")
+            print("#")
+            print('# {}'.format(timestamp))
+            sys.stdout = original_stdout

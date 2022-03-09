@@ -10,7 +10,7 @@ import os
 import pandas as pd
 
 
-def eval_2D_room_id_iou(fpe, metadata, save=True):
+def eval_2D_room_id_iou(fpe, save=True):
     """
     computes 2D IoU per estimated ROOM
     * For debugging purposes only
@@ -60,8 +60,10 @@ def eval_2D_room_id_iou(fpe, metadata, save=True):
         global_map[mask, 2] = comb_map[mask]
 
 
-    file_results = os.path.join(fpe.dt.cfg.get("results_dir"), f"results_room_id_iou_{metadata}.csv")
-    figure_results = os.path.join(fpe.dt.cfg.get("results_dir"), f"{fpe.dt.scene_name}_{metadata}.jpg")
+    file_results = os.path.join(fpe.dt.cfg.get("results_dir"), 
+                                f"results_room_id_iou_{fpe.dt.cfg.get('eval_version')}.csv")
+    figure_results = os.path.join(fpe.dt.cfg.get("results_dir"), 
+                                  f"{fpe.dt.scene_name}_{fpe.dt.cfg.get('eval_version')}.jpg")
 
     # ! Saving filename results
     fpe.dt.cfg['results.room_id_iou'] = file_results
@@ -72,7 +74,7 @@ def eval_2D_room_id_iou(fpe, metadata, save=True):
     global_map = hsv2rgb(global_map)
     plt.figure("room_id_eval")
     plt.clf()
-    plt.title(f"{fpe.dt.scene_name}_{metadata}")
+    plt.title(f"{fpe.dt.scene_name}_{fpe.dt.cfg.get('eval_version')}")
     plt.imshow(global_map)
     plt.draw()
     plt.waitforbuttonpress(0.01)

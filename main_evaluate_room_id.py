@@ -1,4 +1,5 @@
 from config import read_config, overwrite_scene_data
+from config.config import overwite_version
 from data_manager import DataManager
 from src import DirectFloorPlanEstimation
 from utils.visualization.vispy_utils import plot_color_plc
@@ -13,7 +14,7 @@ from utils.io import read_csv_file, save_csv_file
 import os
 
 
-def main(config_file, scene_list_file, dump_dir):
+def main(config_file, scene_list_file, dump_dir, version):
     # ! Reading list of scenes
     list_scenes = read_csv_file(scene_list_file)
 
@@ -24,6 +25,8 @@ def main(config_file, scene_list_file, dump_dir):
     for scene in list_scenes:
         cfg = read_config(config_file=config_file)
         overwrite_scene_data(cfg, scene)
+        overwite_version(cfg, version)
+        
         dt = DataManager(cfg)
 
         fpe = DirectFloorPlanEstimation(dt)
@@ -44,5 +47,6 @@ if __name__ == '__main__':
     config_file = "./config/config.yaml"
     scene_list_file = './data/all_scenes_list.csv'
     dump_dir = './fpe_results'
+    version = 'test'
 
-    main(config_file, scene_list_file, dump_dir)
+    main(config_file, scene_list_file, dump_dir, version)
