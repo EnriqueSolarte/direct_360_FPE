@@ -31,8 +31,9 @@ def overwrite_scene_data(cfg, scene):
     cfg["scene_version"] = scene_split[-1]
     cfg["scene_category"] = scene_split[-3]
     cfg["mp3d_fpe_dir"] = os.path.join(os.getenv("MP3D_FPE_DIR"), scene)
-        
+
     return cfg
+
 
 def overwite_version(cfg, version):
     cfg['eval_version'] = version
