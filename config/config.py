@@ -35,5 +35,6 @@ def overwrite_scene_data(cfg, scene):
     return cfg
 
 def overwite_version(cfg, version):
-    dir_results = os.path.join(os.getenv("RESULTS_DIR"), cfg.get("version", "test_evaluation"))
+    cfg['eval_version'] = version
+    dir_results = os.path.join(os.getenv("RESULTS_DIR"), cfg.get("eval_version", "test_evaluation"))
     cfg['results_dir'] = dir_results

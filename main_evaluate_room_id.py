@@ -38,7 +38,8 @@ def main(config_file, scene_list_file, dump_dir, version):
         fpe.global_ocg_patch.update_bins()
         fpe.global_ocg_patch.update_ocg_map()
         eval_2D_room_id_iou(fpe)
-
+        fpe.dt.save_config()
+        
     sumarize_restults_room_id_iou(fpe)
 
 

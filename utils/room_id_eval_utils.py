@@ -80,7 +80,7 @@ def eval_2D_room_id_iou(fpe, save=True):
     plt.waitforbuttonpress(0.01)
     
     if not save:
-        return
+        return 
     
     # ! Save results
     if os.path.exists(file_results):
@@ -91,7 +91,6 @@ def eval_2D_room_id_iou(fpe, save=True):
         save_csv_file(f"{file_results}", results, flag="w+")
     
     plt.savefig(figure_results)
-
 
 
 def sumarize_restults_room_id_iou(fpe):

@@ -208,7 +208,7 @@ class DataManager:
         self.list_ly = list_ly
         return list_ly
 
-    def save_config(self, filename):
+    def save_config(self, filename=None):
         """
         Saves the current configuration (settings) in a yaml file
         """
@@ -218,6 +218,7 @@ class DataManager:
             "." + str(time.hour) + '.' + str(time.minute) + '.' + str(time.second)
         original_stdout = sys.stdout  # Save a reference to the original standard output
 
+        filename = os.path.join(self.cfg.get("results_dir"), "saved_config.yaml")
         with open(filename, "w") as file:
             yaml.dump(self.cfg, file)
 
