@@ -22,7 +22,7 @@ def plot_curr_room_by_patches(fpe):
     plt.waitforbuttonpress(0.1)
 
 
-def plot_all_rooms_by_patches(fpe):
+def plot_all_rooms_by_patches(fpe, save=True):
     """
     Plots all rooms by ocg-maps
     """
@@ -45,10 +45,11 @@ def plot_all_rooms_by_patches(fpe):
     global_map = hsv2rgb(global_map)
     plt.figure("plot_all_rooms_by_patches")
     plt.clf()
+    plt.title(f"{fpe.dt.scene_name}")
     plt.imshow(global_map)
     plt.draw()
     plt.waitforbuttonpress(0.1)
-
+    
 
 def plot_gaussian_estimations(list_theta_z, block=True):
     x = np.linspace(-1.1 * np.pi, 1.1 * np.pi, 1000)

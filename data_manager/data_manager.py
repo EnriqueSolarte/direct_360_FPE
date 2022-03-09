@@ -9,6 +9,7 @@ from src.data_structure import CamPose
 from utils.io import read_trajectory, read_ply
 from utils.geometry_utils import get_bearings_from_phi_coords, extend_array_to_homogeneous
 from src.data_structure import Layout
+from skimage.measure import points_in_poly
 
 
 class DataManager:
@@ -18,7 +19,6 @@ class DataManager:
         self.load_data()
 
         self.list_ly = []
-
         print("DataManager successfully loaded...")
         print(f"Scene Category: {self.cfg['scene_category']}")
         print(f"Scene: {self.scene_name}")
@@ -29,15 +29,10 @@ class DataManager:
         """
         try:
             self.scene_name = self.cfg['scene'] + '_' + self.cfg['scene_version']
-            self.mp3d_fpe_dir = os.path.join(
-                os.getenv('MP3D_FPE_DIR'),
-                self.cfg['scene_category'],
-                self.cfg['scene'],
-                self.cfg['scene_version']
-            )
-            print('READING FROM', self.mp3d_fpe_dir, self.scene_name)
+            self.mp3d_fpe_dir = self.cfg["mp3d_fpe_dir"]
             self.vo_dir = glob.glob(os.path.join(self.mp3d_fpe_dir, 'vo*'))[0]
         except:
+            print(f"ERROR AT READING SCENE --> {self.mp3d_fpe_dir}")
             raise ValueError("Data_manager couldn't access to the data..")
 
     def load_data(self):
@@ -67,9 +62,43 @@ class DataManager:
             # NOTE: pcl_gt is (N, 3) and z-axis is the height
             self.pcl_gt = read_ply(os.path.join(self.mp3d_fpe_dir, 'pcl.ply'))
 
+            self.compute_kf_per_room()
             self.cam = Sphere(shape=self.cfg['image_resolution'])
         except:
             raise ValueError("Data_manager couldn't access to the data..")
+
+    def compute_kf_per_room(self):
+        """
+        Computes the kf stored per room for evaluation purposes
+        """
+        label = os.path.join(self.mp3d_fpe_dir, 'label.json')
+
+        with open(label) as data_file:
+            data_loaded = json.load(data_file)
+
+        if 'kf_per_room' in data_loaded.keys():
+            # ! Loading list KF per ROOM
+            self.list_kf_per_room = data_loaded['kf_per_room']
+
+        else:
+            # ! Computes Kf per room and save them into JSON file
+            corners = data_loaded["room_corners"]
+            all_cam_poses_t = self.poses_gt[:, 0:3, 3]
+            self.list_kf_per_room = []
+            for room_id, local_corners_gt in enumerate(corners):
+
+                mask = points_in_poly(all_cam_poses_t[:, (0, 2)],
+                                      local_corners_gt)
+
+                if np.sum(mask) == 0:
+                    print('Room GT {} does not have any Kf'.format(room_id))
+                    continue
+                kf = [f for f, m in zip(self.list_kf, mask) if m]
+                self.list_kf_per_room.append(kf)
+
+            data_loaded['kf_per_room'] = self.list_kf_per_room
+            with open(f"{self.mp3d_fpe_dir}/label.json", 'w', encoding='utf-8') as f:
+                json.dump(data_loaded, f, ensure_ascii=False, indent=4)
 
     def load_camera_poses(self):
         """
@@ -109,7 +138,7 @@ class DataManager:
                 room_corners.append(corners)
             axis_corners = d['axis_corners']
             axis_corners = np.asarray([[float(x[0]), float(x[1])]
-                                        for x in axis_corners])
+                                       for x in axis_corners])
         return room_corners, axis_corners
 
     def load_points_gt(self, fn):

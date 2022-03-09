@@ -3,6 +3,38 @@ import json
 import numpy as np
 from plyfile import PlyData
 from pyquaternion import Quaternion
+import csv
+import os
+
+
+def get_list_scenes(data_dir, flag_file, exclude=""):
+    """
+    Searches in the the @data_dir, recurrently, the sub-directories which content the @flag_file.
+    exclude directories can be passed to speed up the rearching
+    """
+    scenes_paths = []
+    for root, dirs, files in os.walk(data_dir):
+        dirs[:] = [d for d in dirs if d not in exclude]
+        [scenes_paths.append(root) for f in files if flag_file in f]
+    return scenes_paths
+
+
+def read_csv_file(filename):
+    with open(filename) as f:
+        csvreader = csv.reader(f)
+
+        lines = []
+        for row in csvreader:
+            lines.append(row[0])
+    return lines
+
+
+def save_csv_file(filename, data, flag='w'):
+    with open(filename, flag) as f:
+        writer = csv.writer(f)
+        for line in data:
+            writer.writerow([l for l in line])
+    f.close()
 
 
 def mytransform44(l, seq="xyzw"):

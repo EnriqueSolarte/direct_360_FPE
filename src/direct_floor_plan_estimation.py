@@ -34,7 +34,7 @@ class DirectFloorPlanEstimation:
         """
         It add the passed Layout to the systems and estimated the floor plan
         """
-
+        print(f"Running: {self.dt.scene_name}")
         if not self.is_initialized:
             self.initialize(layout)
             return

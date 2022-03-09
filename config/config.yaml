@@ -8,10 +8,10 @@ scene: "i5noydFURQK"
 scene_version: "0"
 
 scene: "2t7WUuJeko7"
-scene_version: "0"
+scene_version: "1"
 
 scene: "i5noydFURQK"
-scene_version: "1"
+scene_version: "0"
 
 # scene: "Z6MFQCViBuw"
 # scene_version: "0"
@@ -48,6 +48,8 @@ room_id.grid_padding: 50
 room_id.ocg_threshold: 0.5
 room_id.clipped_ratio: 5
 room_id.iuo_overlapping_allowed: 0.3
+room_id.non_isotropic_normalization: True
+room_id.temporal_weighting: False
 
 
 # ! Scale Recovering Parameters
