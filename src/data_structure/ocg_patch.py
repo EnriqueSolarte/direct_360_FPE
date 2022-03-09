@@ -157,10 +157,11 @@ class OCGPatches:
             else:
                 self.ocg_map[uv[1]:uv[1]+h, uv[0]:uv[0]+w] += patch.ocg_map
             
+             # ! Adding non-isotropic Normalization 
             if self.dt.cfg.get("room_id.non_isotropic_normalization", False):
                 self.ocg_map = self.ocg_map/self.ocg_map.max()
                     
-        # ! Adding non-isotropic Normalization 
+        # ! Adding isotropic Normalization 
         if not self.dt.cfg.get("room_id.non_isotropic_normalization", False):
             self.ocg_map = self.ocg_map/self.ocg_map.max()
         
