@@ -165,7 +165,7 @@ def main(config_file, scene_list_file, dump_dir):
 if __name__ == '__main__':
     # TODO read from passed args
     config_file = "./config/config.yaml"
-    scene_list_file = './data/scene_list.csv'
+    scene_list_file = './data/all_scenes_list.csv'
     dump_dir = os.path.join(os.getenv("RESULTS_DIR", './dump'), 'dump')
     os.makedirs(dump_dir, exist_ok=True)
     main(config_file, scene_list_file, dump_dir)

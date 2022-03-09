@@ -8,15 +8,19 @@ from utils.data_utils import flatten_lists_of_lists
 import matplotlib.pyplot as plt
 from utils.visualization.room_utils import plot_curr_room_by_patches, plot_all_rooms_by_patches
 from utils.visualization.room_utils import plot_floor_plan
-from utils.room_id_eval_utils import eval_2D_room_id_iou, restults_2D_room_id_iou
+from utils.room_id_eval_utils import eval_2D_room_id_iou, sumarize_restults_room_id_iou
 from utils.io import read_csv_file, save_csv_file
 import os
 
 
-def main(config_file):
-    list_scenes = read_csv_file(
-        os.path.join(os.path.dirname(__file__), "data", "scene_list.csv")
-    )
+def main(config_file, scene_list_file, dump_dir):
+    # ! Reading list of scenes
+    list_scenes = read_csv_file(scene_list_file)
+
+    # ! creating dump_dir for save results
+    os.makedirs(dump_dir, exist_ok=True)
+
+    # ! Running every scene
     for scene in list_scenes:
         cfg = read_config(config_file=config_file)
         overwrite_scene_data(cfg, scene)
@@ -31,12 +35,14 @@ def main(config_file):
         fpe.global_ocg_patch.update_bins()
         fpe.global_ocg_patch.update_ocg_map()
         eval_2D_room_id_iou(fpe)
-    
-    restults_2D_room_id_iou(fpe)
-    
-        
+
+    sumarize_restults_room_id_iou(fpe)
+
 
 if __name__ == '__main__':
     # TODO read from  passed args
     config_file = "./config/config.yaml"
-    main(config_file=config_file)
+    scene_list_file = './data/all_scenes_list.csv'
+    dump_dir = './fpe_results'
+
+    main(config_file, scene_list_file, dump_dir)

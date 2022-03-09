@@ -10,7 +10,7 @@ import os
 import pandas as pd
 
 
-def eval_2D_room_id_iou(fpe, save=True):
+def eval_2D_room_id_iou(fpe, metadata, save=True):
     """
     computes 2D IoU per estimated ROOM
     * For debugging purposes only
@@ -22,11 +22,12 @@ def eval_2D_room_id_iou(fpe, save=True):
     colors = np.linspace(0, 0.9, fpe.dt.room_corners.__len__())
 
     for idx, cr in enumerate(fpe.dt.room_corners):
+        
         # ! GT rooms
         gt_room = np.zeros(fpe.global_ocg_patch.get_shape())
-        cr_xyz = extend_array_to_homogeneous(cr.T)[(0, 2, 1), :]
-        cr_px = fpe.global_ocg_patch.project_xyz_to_uv(cr_xyz)
-        cv2.fillPoly(gt_room, [cr_px.T], (1, 1, 1))
+        corner_xyz = extend_array_to_homogeneous(cr.T)[(0, 2, 1), :]
+        corner_uv = fpe.global_ocg_patch.project_xyz_to_uv(corner_xyz)
+        cv2.fillPoly(gt_room, [corner_uv.T], (1, 1, 1))
 
         # ! Estimated rooms
         eval_iou = []
@@ -58,10 +59,8 @@ def eval_2D_room_id_iou(fpe, save=True):
         global_map[mask, 1] = 1
         global_map[mask, 2] = comb_map[mask]
 
-    metadata = f"{fpe.dt.cfg.get('room_id.ocg_threshold')}_{fpe.dt.cfg.get('room_id.clipped_ratio')}_{fpe.dt.cfg.get('room_id.iuo_overlapping_allowed')}"
-    metadata += "_non_iso_norm_per_esp"
-    metadata += "_no_wtemp"
-    file_results = os.path.join(fpe.dt.cfg.get("results_dir"), f"room_id_iou_results_{metadata}.csv")
+
+    file_results = os.path.join(fpe.dt.cfg.get("results_dir"), f"results_room_id_iou_{metadata}.csv")
     figure_results = os.path.join(fpe.dt.cfg.get("results_dir"), f"{fpe.dt.scene_name}_{metadata}.jpg")
 
     # ! Saving filename results
@@ -69,27 +68,33 @@ def eval_2D_room_id_iou(fpe, save=True):
     
     os.makedirs(fpe.dt.cfg.get("results_dir"), exist_ok=True)
     
-    
-    # ! Save results
-    if os.path.exists(file_results):
-        # ! Eval pre-exist results
-        eval_data = pd.read_csv(fpe.dt.cfg['results.room_id_iou'], header=None, delimiter=',').values
-        if f"{fpe.dt.cfg['scene']}_{fpe.dt.cfg['scene_version']}_room{idx}" in eval_data[:, 0]:
-            return
-        save_csv_file(f"{file_results}", results, flag="a")
-    else:
-        save_csv_file(f"{file_results}", results, flag="w+")
 
     global_map = hsv2rgb(global_map)
     plt.figure("room_id_eval")
     plt.clf()
     plt.title(f"{fpe.dt.scene_name}_{metadata}")
     plt.imshow(global_map)
+    plt.draw()
+    plt.waitforbuttonpress(0.01)
+    
+    if not save:
+        return
+    
+    # ! Save results
+    if os.path.exists(file_results):
+        # ! Append data
+        save_csv_file(f"{file_results}", results, flag="a")
+    else:
+        # ! Create and write data
+        save_csv_file(f"{file_results}", results, flag="w+")
+    
     plt.savefig(figure_results)
 
 
 
-def restults_2D_room_id_iou(fpe):
+def sumarize_restults_room_id_iou(fpe):
+    assert os.path.exists(fpe.dt.cfg['results.room_id_iou'])
+    
     results = pd.read_csv(fpe.dt.cfg['results.room_id_iou'], header=None, delimiter=',').values
     q25 = np.quantile(results[:, 1], 0.25)
     q50 = np.quantile(results[:, 1], 0.5)
