@@ -68,6 +68,10 @@ def fit_size_range(height, width, min_edge, max_edge):
     return height, width, scale1*scale2
 
 
+class SPAError(Exception):
+    pass
+
+
 class RoomShapeEstimator:
     def __init__(self, dt):
         self.cfg = dt.cfg
@@ -138,12 +142,16 @@ class SPABasic:
         self.room = room
         self.ocg = ocg_patch
 
+        if len(self.room.list_pl) == 0:
+            raise SPAError('No plane info found')
+
     def get_plane_pcl(self, plane_type='all'):
         assert plane_type in ['optimal', 'all']
         if plane_type == 'optimal':
             planes = [pl.boundary for pl in self.room.list_pl if pl.isOptimal]
         elif plane_type == 'all':
             planes = [pl.boundary for pl in self.room.list_pl]
+
         return np.concatenate(planes, axis=1)
 
     def get_plane_density(self, plane_type='all'):
@@ -320,7 +328,7 @@ class SPABasic:
         #                 valid_edges.append([end_node, start_node])
 
         if len(valid_edges) == 0:
-            raise ValueError("Cannot find a valid starting edge")
+            raise SPAError("Cannot find a valid starting edge")
 
         # start_node, end_node = valid_edges[0]
         # Find breaking line
@@ -340,7 +348,7 @@ class SPABasic:
                 break
 
         if not found_valid:
-            raise ValueError("Cannot find a starting edge with a valid break line")
+            raise SPAError("Cannot find a starting edge with a valid break line")
         break_line = (np.array(break_line[0]), np.array(break_line[1]))
 
         return start_node_idx, end_node_idx, break_line
@@ -557,10 +565,13 @@ class SPABasic:
         # Get ocg_map from planes for search space
         all_nodes = self.get_valid_pixels()
         if all_nodes.shape[0] == 0:
-            raise ValueError('No valid pixels')
+            raise SPAError('No valid pixels')
 
         # Convert theta_angles to unit vectors
         theta_vecs = self.get_theta_vecs()
+        if theta_vecs.shape[0] == 0:
+            raise SPAError('No valid orientations')
+
         # Build plane density map
         plane_density_map = self.get_plane_density()
         # Build corner density map
@@ -749,7 +760,7 @@ class SPARefine(SPABasic):
                 valid_edges.append([end_xy, start_xy])
 
         if len(valid_edges) == 0:
-            raise ValueError('No valid edges find in SPARefine')
+            raise SPAError('No valid edges find in SPARefine')
         np.random.shuffle(valid_edges)
 
         def score_similar_to_previous(start_xy, end_xy, threshold=1.0):
@@ -765,7 +776,6 @@ class SPARefine(SPABasic):
             return penalty
         if self.prev_start_corner is not None and self.prev_end_corner is not None:
             # Avoid choosing the same start and end corners if they are given
-            print('Sort starting edge similarity')
             valid_edges.sort(
                 key=lambda x: score_similar_to_previous(x[0], x[1])
             )
@@ -786,7 +796,7 @@ class SPARefine(SPABasic):
                 break
 
         if not found_valid:
-            raise ValueError("Cannot find a starting edge with a valid break line")
+            raise SPAError("Cannot find a starting edge with a valid break line")
         break_line = (np.array(break_line[0]), np.array(break_line[1]))
 
         return start_node_idx, end_node_idx, break_line

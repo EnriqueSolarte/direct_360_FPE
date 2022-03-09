@@ -81,6 +81,11 @@ def read_ply(fn):
     plydata = PlyData.read(fn)
     v = np.array([list(x) for x in plydata.elements[0]])
     points = np.ascontiguousarray(v[:, :3])
-    points[:, 0:3] = points[:, [0, 2, 1]]
+    # points[:, 0:3] = points[:, [0, 2, 1]]
     colors = np.ascontiguousarray(v[:, 3:6], dtype=np.float32) / 255
     return np.concatenate((points, colors), axis=1)
+
+
+def read_scene_list(fn):
+    with open(fn, 'r') as f:
+        return sorted(f.read().strip().split('\n'))

@@ -3,6 +3,7 @@ from tqdm import tqdm
 
 from src.scale_recover import ScaleRecover
 from src.solvers.plane_estimator import PlaneEstimator
+from src.solvers.room_shape_estimator import SPAError
 from src.data_structure import OCGPatches, Room
 from utils.geometry_utils import find_N_peaks
 from utils.ocg_utils import compute_iou_ocg_map
@@ -125,8 +126,8 @@ class DirectFloorPlanEstimation:
         Initializes the system
         """
         self.is_initialized = False
-        
-        if self.dt.cfg.get("scale_recover.apply_gt_scale", False):       
+
+        if self.dt.cfg.get("scale_recover.apply_gt_scale", False):
             if not self.scale_recover.estimate_vo_and_gt_scale():
                 return self.is_initialized
         else:
@@ -288,9 +289,12 @@ class DirectFloorPlanEstimation:
     def compute_room_shape_all(self):
         ''' Compute the room shape for all the rooms at once '''
         room_corners = []
-        for room in tqdm(self.list_rooms):
+        for room in tqdm(self.list_rooms, desc="Running iSPA..."):
             if room.status == ROOM_STATUS.FOR_DELETION:
                 continue
-            out_dict = room.compute_room_shape()
+            try:
+                out_dict = room.compute_room_shape()
+            except SPAError as e:
+                print(e)
             room_corners.append(out_dict['corners_xz'].T)
         return room_corners

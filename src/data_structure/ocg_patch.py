@@ -178,11 +178,8 @@ class OCGPatches:
         u_bins = self.resize_bins(self.u_bins, scale)
 
         height, width = self.get_shape()
-        print(f'Origin size: {height} {width}')
-
         height = round(height * scale)
         width = round(width * scale)
-        print(f'After resize size: {height} {width}')
 
         self.v_bins = v_bins
         self.u_bins = u_bins

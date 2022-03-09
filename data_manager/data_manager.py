@@ -2,12 +2,11 @@ import os
 import glob
 import json
 import numpy as np
-from plyfile import PlyData, PlyElement
 from tqdm import tqdm
 from utils.camera_models.sphere import Sphere
 from utils.enum import *
 from src.data_structure import CamPose
-from utils.io import *
+from utils.io import read_trajectory, read_ply
 from utils.geometry_utils import get_bearings_from_phi_coords, extend_array_to_homogeneous
 from src.data_structure import Layout
 
@@ -30,8 +29,14 @@ class DataManager:
         """
         try:
             self.scene_name = self.cfg['scene'] + '_' + self.cfg['scene_version']
-            self.mp3d_fpe_dir = self.cfg["mp3d_fpe_dir"]
-            self.vo_dir = glob.glob(os.path.join(self.mp3d_fpe_dir, 'vo_*'))[0]
+            self.mp3d_fpe_dir = os.path.join(
+                os.getenv('MP3D_FPE_DIR'),
+                self.cfg['scene_category'],
+                self.cfg['scene'],
+                self.cfg['scene_version']
+            )
+            print('READING FROM', self.mp3d_fpe_dir, self.scene_name)
+            self.vo_dir = glob.glob(os.path.join(self.mp3d_fpe_dir, 'vo*'))[0]
         except:
             raise ValueError("Data_manager couldn't access to the data..")
 
@@ -58,7 +63,9 @@ class DataManager:
 
             # ! Load GT floor plan & point cloud
             self.room_corners, self.axis_corners = self.load_fp_gt(os.path.join(self.mp3d_fpe_dir, 'label.json'))
-            self.pcl_gt = self.load_points_gt(os.path.join(self.mp3d_fpe_dir, 'pcl.ply'))
+
+            # NOTE: pcl_gt is (N, 3) and z-axis is the height
+            self.pcl_gt = read_ply(os.path.join(self.mp3d_fpe_dir, 'pcl.ply'))
 
             self.cam = Sphere(shape=self.cfg['image_resolution'])
         except:

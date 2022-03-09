@@ -12,9 +12,11 @@
 				"name": "Python: Current File",
 				"type": "python",
 				"request": "launch",
-				"program": "test.py",
-				"console": "integratedTerminal"
+				"program": "${file}",
+				"console": "integratedTerminal",
+				"justMyCode": true
 			}
 		]
-	}
+	},
+	
 }

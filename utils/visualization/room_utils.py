@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from skimage.color import rgb2hsv, hsv2rgb
 from src.solvers.theta_estimator import GaussianModel_1D
+from utils.eval_utils import rotate_by_axis_corners
 
 
 def plot_curr_room_by_patches(fpe):
@@ -102,6 +103,27 @@ def get_colors(num_colors):
     return colors
 
 
+def plot_all_planes(fpe, axis_align=True):
+    # Draw planes and gt point cloud together
+    planes = []
+    for room in fpe.list_rooms:
+        planes.extend([pl.boundary for pl in room.list_pl])
+    planes = np.concatenate(planes, axis=1)     # (3, N)
+    planes = planes[[0, 2], :].T
+    points = fpe.dt.pcl_gt[:, [0, 2]]
+
+    if axis_align:
+        axis_corners = fpe.dt.axis_corners
+        planes = rotate_by_axis_corners(planes, axis_corners)
+        points = rotate_by_axis_corners(points, axis_corners)
+
+    plt.figure("Planes & points")
+    plt.clf()
+    plt.scatter(planes[:, 0], planes[:, 1], c='blue')
+    plt.scatter(points[:, 0], points[:, 1], c='red')
+    plt.show()
+
+
 def plot_floor_plan(room_list, ocg, points_gt=None, planes=None):
     '''
         room_list: list of room_corners with shape (2, N)
@@ -112,7 +134,7 @@ def plot_floor_plan(room_list, ocg, points_gt=None, planes=None):
     image = np.zeros((height, width, 3), dtype=np.uint8)
     image.fill(255)
     if points_gt is not None:
-        density_map = ocg.project_xyz_points_to_hist(points_gt)
+        density_map = ocg.project_xyz_points_to_hist(points_gt[:, :3].T)
         density_map = np.stack([density_map, density_map, density_map], axis=-1)
         density_map /= density_map.max()
         density_map *= 255
