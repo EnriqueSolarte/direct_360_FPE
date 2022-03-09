@@ -1,6 +1,7 @@
 import os
 import yaml
 from dotenv import load_dotenv
+import git
 
 load_dotenv('env.env')
 
@@ -18,6 +19,8 @@ def read_config(config_file):
     dir_results = os.path.join(os.getenv("RESULTS_DIR"), cfg.get("version", "test_evaluation"))
     cfg['results_dir'] = dir_results
 
+    repo = git.Repo(search_parent_directories=True)
+    cfg['git.commit_brach'] = repo.head._get_commit().name_rev
     print(f"Config file {config_file} loaded successfully")
     return cfg
 
