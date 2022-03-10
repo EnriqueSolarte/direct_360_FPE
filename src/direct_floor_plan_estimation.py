@@ -34,7 +34,7 @@ class DirectFloorPlanEstimation:
         """
         It add the passed Layout to the systems and estimated the floor plan
         """
-        print(f"Running: {self.dt.scene_name}")
+        print(f"Running: {self.dt.scene_name} - eval-version:{self.dt.cfg['eval_version']}")
         if not self.is_initialized:
             self.initialize(layout)
             return
@@ -44,7 +44,7 @@ class DirectFloorPlanEstimation:
 
         if self.eval_new_room_creation(layout):
             self.eval_room_overlapping()
-            prev_room = self.curr_room
+            # prev_room = self.curr_room
             self.curr_room = self.select_room(layout)
             if self.curr_room is None:
                 # Estimate room shape sequentially
@@ -225,21 +225,32 @@ class DirectFloorPlanEstimation:
         self.global_ocg_patch.update_ocg_map(binary_map=True)
 
         [r.set_status(ROOM_STATUS.OVERLAPPING) for r in self.list_rooms]
+
         for room_ocg_map, room in zip(self.global_ocg_patch.ocg_map, self.list_rooms):
             if room.status != ROOM_STATUS.OVERLAPPING:
                 # ! This avoid to process merged rooms
                 continue
+            iou_meas = []
+            rooms_candidates = []
             for tmp_ocg_map, tmp_room in zip(self.global_ocg_patch.ocg_map, self.list_rooms):
                 if tmp_room is room:
                     continue
-                iou = compute_iou_ocg_map(
-                    ocg_map_target=room_ocg_map,
-                    ocg_map_estimation=tmp_ocg_map
-                )
-                if iou > self.dt.cfg.get("room_id.iuo_overlapping_allowed", 0.25):
-                    # ! Exits an overlapping betwen rooms
-                    # *(1) merge rooms and append at the edn of list_rooms (change ready flag)
-                    self.merge_rooms(room, tmp_room)
+                # iou = compute_iou_ocg_map(
+                #     ocg_map_target=room_ocg_map,
+                #     ocg_map_estimation=tmp_ocg_map
+                # )
+                intersection = (room_ocg_map + tmp_ocg_map) > 1
+                iou = np.sum(intersection)/np.max((np.sum(room_ocg_map), np.sum(tmp_ocg_map)))
+                # iou = np.sum(intersection)/np.min((np.sum(room_ocg_map), np.sum(tmp_ocg_map)))
+                
+                iou_meas.append(iou)
+                rooms_candidates.append(tmp_room)
+                # if iou > self.dt.cfg.get("room_id.iuo_overlapping_allowed", 0.25):
+                # ! Exits an overlapping betwen rooms
+                # *(1) merge rooms and append at the edn of list_rooms (change ready flag)
+                # self.merge_rooms(room, tmp_room)
+            if np.sum(np.array(iou_meas) > self.dt.cfg.get("room_id.iuo_overlapping_allowed", 0.25)) > 0:
+                self.merge_rooms(room, rooms_candidates[np.argmax(iou_meas)])
 
         self.delete_rooms()
         [r.set_status(False) for r in self.list_rooms]

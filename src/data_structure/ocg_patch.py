@@ -117,7 +117,7 @@ class OCGPatches:
         self.v_bins = np.mgrid[min_points[1]:max_points[1]+self.grid_size: self.grid_size]
         return self.u_bins, self.v_bins
 
-    def update_ocg_map(self, binary_map=False):
+    def update_ocg_map(self, binary_map=True):
         """
         Updates the OCG map by aggregating layers of registered Patches (layers, H, W)
         """
@@ -157,16 +157,12 @@ class OCGPatches:
             else:
                 self.ocg_map[uv[1]:uv[1]+h, uv[0]:uv[0]+w] += patch.ocg_map
             
-             # ! Adding non-isotropic Normalization 
+            # ! Adding non-isotropic Normalization
             if self.dt.cfg.get("room_id.non_isotropic_normalization", False):
                 self.ocg_map = self.ocg_map/self.ocg_map.max()
-                    
-        # ! Adding isotropic Normalization 
-        if not self.dt.cfg.get("room_id.non_isotropic_normalization", False):
-            self.ocg_map = self.ocg_map/self.ocg_map.max()
-        
-
-            # TODO: combine/ add update_ocg_map() as binary map option
+                        
+        self.ocg_map = self.ocg_map/self.ocg_map.max()
+        # TODO: combine/ add update_ocg_map() as binary map option
 
     def add_patch(self, patch):
         """

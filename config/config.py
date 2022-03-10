@@ -42,3 +42,4 @@ def overwite_version(cfg, version):
     cfg['eval_version'] = version
     dir_results = os.path.join(os.getenv("RESULTS_DIR"), cfg.get("eval_version", "test_evaluation"))
     cfg['results_dir'] = dir_results
+    os.makedirs(dir_results, exist_ok=True)

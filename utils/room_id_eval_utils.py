@@ -76,10 +76,10 @@ def eval_2D_room_id_iou(fpe, save=True):
     plt.clf()
     plt.title(f"{fpe.dt.scene_name}_{fpe.dt.cfg.get('eval_version')}")
     plt.imshow(global_map)
-    plt.draw()
-    plt.waitforbuttonpress(0.01)
     
     if not save:
+        plt.draw()
+        plt.waitforbuttonpress(0.01)
         return 
     
     # ! Save results
@@ -96,14 +96,22 @@ def eval_2D_room_id_iou(fpe, save=True):
 def sumarize_restults_room_id_iou(fpe):
     assert os.path.exists(fpe.dt.cfg['results.room_id_iou'])
     
+    file_results = os.path.join(fpe.dt.cfg.get("results_dir"), "results.room_id_iou.csv")
     results = pd.read_csv(fpe.dt.cfg['results.room_id_iou'], header=None, delimiter=',').values
+    data = []
     q25 = np.quantile(results[:, 1], 0.25)
+    data.append(("Q25", q25))
     q50 = np.quantile(results[:, 1], 0.5)
+    data.append(("Q50", q50))
     q75 =np.quantile(results[:, 1], 0.75)
+    data.append(("Q75", q75))
     mean_ = np.mean(results[:, 1])
+    data.append(("mean", mean_))
+    
     print("TOTAL RESULTS")
     print(f"Q25: {q25}")
     print(f"Q50: {q50}")
     print(f"Q75: {q75}")
     print(f"mean: {mean_}")
+    save_csv_file(f"{file_results}", data, flag="w+")
     

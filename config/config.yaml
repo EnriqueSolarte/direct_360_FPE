@@ -45,11 +45,11 @@ theta_estimation.penalty: 0.5
 # ! Room Identification
 room_id.grid_size: 0.1
 room_id.grid_padding: 50
-room_id.ocg_threshold: 0.5
-room_id.clipped_ratio: 5
-room_id.iuo_overlapping_allowed: 0.3
+room_id.ocg_threshold: 0.8
+room_id.clipped_ratio: 10
+room_id.iuo_overlapping_allowed: 0.8
 room_id.non_isotropic_normalization: True
-room_id.temporal_weighting: False
+room_id.temporal_weighting: True
 
 
 # ! Scale Recovering Parameters

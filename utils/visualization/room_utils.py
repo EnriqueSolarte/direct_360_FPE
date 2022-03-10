@@ -5,13 +5,19 @@ import numpy as np
 from skimage.color import rgb2hsv, hsv2rgb
 from src.solvers.theta_estimator import GaussianModel_1D
 from utils.eval_utils import rotate_by_axis_corners
+import os
 
 
 def plot_curr_room_by_patches(fpe):
     """
     Plots de current ocg-map relate to the current room
     """
-    room_ocg_map = fpe.curr_room.local_ocg_patches.ocg_map
+    room_ocg_map = fpe.curr_room.local_ocg_patches.ocg_map.copy()
+    pose_uv = fpe.curr_room.local_ocg_patches.project_xyz_to_uv(
+        fpe.curr_room.list_ly[-1].pose_est.t.reshape(3, 1)
+    )
+
+    room_ocg_map[pose_uv[1, :], pose_uv[0, :]] = -1
     plt.figure("plot_curr_room_by_patches")
     plt.clf()
     plt.subplot(121)
@@ -22,7 +28,7 @@ def plot_curr_room_by_patches(fpe):
     plt.waitforbuttonpress(0.1)
 
 
-def plot_all_rooms_by_patches(fpe, save=True):
+def plot_all_rooms_by_patches(fpe, only_save=True):
     """
     Plots all rooms by ocg-maps
     """
@@ -47,9 +53,14 @@ def plot_all_rooms_by_patches(fpe, save=True):
     plt.clf()
     plt.title(f"{fpe.dt.scene_name}")
     plt.imshow(global_map)
+
+    if only_save:
+        plt.savefig(os.path.join(fpe.dt.cfg.get("results_dir"), f"{fpe.dt.scene_name}.jpg"))
+        return
+
     plt.draw()
     plt.waitforbuttonpress(0.1)
-    
+
 
 def plot_gaussian_estimations(list_theta_z, block=True):
     x = np.linspace(-1.1 * np.pi, 1.1 * np.pi, 1000)

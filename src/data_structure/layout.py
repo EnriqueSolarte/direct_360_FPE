@@ -99,13 +99,16 @@ class Layout:
         if self.cam_ref == CAM_REF.WC_SO3 or self.cam_ref == CAM_REF.CC:
             # ! Boundary reference still in camera reference
             self.cam2boundary = np.linalg.norm(self.boundary[(0, 2), :], axis=0)
-            self.cam2boundary_mask = self.cam2boundary.reshape([-1,]) < self.dt.cfg["room_id.clipped_ratio"]
+            # self.cam2boundary_mask = self.cam2boundary.reshape([-1,]) < self.dt.cfg["room_id.clipped_ratio"]
+            clip_boun = self.dt.cfg["room_id.clipped_ratio"] * np.median(self.cam2boundary)
+            self.cam2boundary_mask = self.cam2boundary.reshape([-1,]) < clip_boun
         else:
             assert self.cam_ref == CAM_REF.WC
             pcl = np.linalg.inv(self.pose_est.SE3_scaled())[:3, :] @ extend_array_to_homogeneous(self.boundary)
             self.cam2boundary = np.linalg.norm(pcl[(0, 2), :], axis=0)
-            self.cam2boundary_mask = self.cam2boundary.reshape([-1,]) < self.dt.cfg["room_id.clipped_ratio"]
-            
+            # self.cam2boundary_mask = self.cam2boundary.reshape([-1,]) < self.dt.cfg["room_id.clipped_ratio"]
+            clip_boun = self.dt.cfg["room_id.clipped_ratio"] * np.median(self.cam2boundary)
+            self.cam2boundary_mask = self.cam2boundary.reshape([-1,]) < clip_boun
 
     def get_clipped_boundary(self):
         """
@@ -115,7 +118,9 @@ class Layout:
         assert self.cam_ref == CAM_REF.WC
 
         clipped_boundary = np.linalg.inv(self.pose_est.SE3_scaled())[:3, :] @ extend_array_to_homogeneous(self.boundary)
-        mask = self.cam2boundary > self.dt.cfg["room_id.clipped_ratio"]
+        # mask = self.cam2boundary > self.dt.cfg["room_id.clipped_ratio"]
+        clip_boun = self.dt.cfg["room_id.clipped_ratio"] * np.median(self.cam2boundary)
+        mask = self.cam2boundary > clip_boun
         radius = np.linalg.norm(clipped_boundary[(0, 2), :], axis=0)
         clipped_boundary[:, mask] = self.dt.cfg["room_id.clipped_ratio"] * clipped_boundary[:, mask]/radius[mask]
 
