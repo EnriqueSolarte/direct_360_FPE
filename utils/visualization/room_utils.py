@@ -54,12 +54,13 @@ def plot_all_rooms_by_patches(fpe, only_save=True):
     plt.title(f"{fpe.dt.scene_name}")
     plt.imshow(global_map)
 
-    if only_save:
-        plt.savefig(os.path.join(fpe.dt.cfg.get("results_dir"), f"{fpe.dt.scene_name}.jpg"))
-        return
+    # if only_save:
+    #     plt.savefig(os.path.join(fpe.dt.cfg.get("results_dir"), f"{fpe.dt.scene_name}.jpg"))
+    #     return
 
     plt.draw()
     plt.waitforbuttonpress(0.1)
+    return global_map
 
 
 def plot_gaussian_estimations(list_theta_z, block=True):
@@ -179,3 +180,60 @@ def plot_floor_plan(room_list, ocg, points_gt=None, planes=None):
     plt.imshow(image)
     plt.draw()
     plt.waitforbuttonpress(0.1)
+
+
+def plot_planes_rooms_patches(fpe, points_gt=None, room_corner_list=None, draw_plane=True):
+    '''
+        fpe:            FPE object
+        pcl_gt:         GT point cloud
+        room_list:      Estimated room corners. Draw rooms if not None
+        room_list_gt:      GT room corners. Draw rooms if not None
+        scale:          if None, will use fpe.gt_scale
+        draw_plane:     boolean
+    '''
+    # Prepare background
+    ocg = fpe.global_ocg_patch
+    height, width = ocg.get_shape()
+    image = np.zeros((height, width, 3), dtype=np.uint8)
+    image.fill(255)
+    if points_gt is not None:
+        density_map = ocg.project_xyz_points_to_hist(points_gt[:, :3].T)
+        density_map = np.stack([density_map, density_map, density_map], axis=-1)
+        density_map /= density_map.max()
+        density_map *= 255
+        density_map = np.clip(np.round(density_map), 0, 255).astype(np.uint8)
+        density_map = 255 - density_map
+        image += density_map
+
+    if draw_plane:
+        planes = []
+        for room in fpe.list_rooms:
+            planes.extend([pl.boundary for pl in room.list_pl])
+        planes = np.concatenate(planes, axis=1)     # (3, N)
+        planes = ocg.project_xyz_to_uv(planes)
+        mask = (planes[0, :] >= 0) & (planes[0, :] < width) & (planes[1, :] >= 0) & (planes[1, :] < height)
+        image[planes[1, mask], planes[0, mask], :] = np.array([128, 128, 128])
+
+    colors = get_colors(len(fpe.global_ocg_patch.ocg_map))
+    for idx, ocg_map in enumerate(fpe.global_ocg_patch.ocg_map):
+        mask = ocg_map > fpe.dt.cfg["room_shape_opt.ocg_threshold"]
+        image[mask, :] = colors[idx, :]
+
+    if room_corner_list is not None:
+        for room_idx, room_corners in enumerate(room_corner_list):
+            N = room_corners.shape[1]
+            if room_corners.shape[0] == 2:
+                # Make xz (2, N) -> xyz (3, N)
+                ones = np.ones_like(room_corners[0, :])
+                room_corners = np.stack([room_corners[0, :], ones, room_corners[1, :]], axis=0)
+            room_corners = ocg.project_xyz_to_uv(room_corners)
+            # color = colors[room_idx].tolist()
+            color = (255, 0, 255)
+            for i in range(N):
+                u1, v1 = room_corners[:, i]
+                u2, v2 = room_corners[:, (i+1) % N]
+                cv2.line(image, (u1, v1), (u2, v2), color, 2)
+                cv2.circle(image, (u1, v1), 1, color, -1)
+                cv2.circle(image, (u2, v2), 1, color, -1)
+
+    return image

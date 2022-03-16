@@ -13,9 +13,6 @@ def read_config(config_file):
     with open(config_file, 'r') as f:
         cfg = yaml.safe_load(f)
 
-    mp3d_fpe_dir = os.path.join(os.getenv('MP3D_FPE_DIR'), cfg['scene_category'], cfg['scene'], cfg['scene_version'])
-    cfg['mp3d_fpe_dir'] = mp3d_fpe_dir
-
     dir_results = os.path.join(os.getenv("RESULTS_DIR"), cfg.get("version", "test_evaluation"))
     cfg['results_dir'] = dir_results
 

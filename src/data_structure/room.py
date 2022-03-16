@@ -99,5 +99,5 @@ class Room:
         # ! Compute Orientations
         self.compute_orientations()
 
-    def compute_room_shape(self):
-        return self.room_shape_estimator.estimate(self)
+    def compute_room_shape(self, dump_dir=None, room_idx=None):
+        return self.room_shape_estimator.estimate(self, dump_dir=dump_dir, room_idx=room_idx)

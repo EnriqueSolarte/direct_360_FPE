@@ -1,3 +1,4 @@
+import os
 import numpy as np
 from tqdm import tqdm
 
@@ -34,7 +35,7 @@ class DirectFloorPlanEstimation:
         """
         It add the passed Layout to the systems and estimated the floor plan
         """
-        print(f"Running: {self.dt.scene_name} - eval-version:{self.dt.cfg['eval_version']}")
+        # print(f"Running: {self.dt.scene_name} - eval-version:{self.dt.cfg['eval_version']}")
         if not self.is_initialized:
             self.initialize(layout)
             return
@@ -225,7 +226,7 @@ class DirectFloorPlanEstimation:
         self.global_ocg_patch.update_ocg_map(binary_map=True)
 
         [r.set_status(ROOM_STATUS.OVERLAPPING) for r in self.list_rooms]
-
+        assert len(self.global_ocg_patch.ocg_map) == len(self.list_rooms)
         for room_ocg_map, room in zip(self.global_ocg_patch.ocg_map, self.list_rooms):
             if room.status != ROOM_STATUS.OVERLAPPING:
                 # ! This avoid to process merged rooms
@@ -242,7 +243,7 @@ class DirectFloorPlanEstimation:
                 intersection = (room_ocg_map + tmp_ocg_map) > 1
                 iou = np.sum(intersection)/np.max((np.sum(room_ocg_map), np.sum(tmp_ocg_map)))
                 # iou = np.sum(intersection)/np.min((np.sum(room_ocg_map), np.sum(tmp_ocg_map)))
-                
+
                 iou_meas.append(iou)
                 rooms_candidates.append(tmp_room)
                 # if iou > self.dt.cfg.get("room_id.iuo_overlapping_allowed", 0.25):
@@ -267,6 +268,7 @@ class DirectFloorPlanEstimation:
         if list_rooms.__len__() > 0:
             self.list_rooms = list_rooms
             self.global_ocg_patch.list_patches = [r.local_ocg_patches for r in list_rooms]
+        assert len(self.list_rooms) == len(self.global_ocg_patch.list_patches)
 
     def merge_rooms(self, room_a, room_b):
         """
@@ -300,12 +302,16 @@ class DirectFloorPlanEstimation:
     def compute_room_shape_all(self):
         ''' Compute the room shape for all the rooms at once '''
         room_corners = []
-        for room in tqdm(self.list_rooms, desc="Running iSPA..."):
+        for room_idx, room in enumerate(tqdm(self.list_rooms, desc="Running iSPA...")):
             if room.status == ROOM_STATUS.FOR_DELETION:
                 continue
             try:
-                out_dict = room.compute_room_shape()
+                os.makedirs(os.path.join(self.dt.cfg.get("results_dir"), self.dt.scene_name), exist_ok=True)
+                out_dict = room.compute_room_shape(
+                    room_idx=room_idx,
+                    dump_dir=os.path.join(self.dt.cfg.get("results_dir"), self.dt.scene_name)
+                )
+                room_corners.append(out_dict['corners_xz'].T)
             except SPAError as e:
                 print(e)
-            room_corners.append(out_dict['corners_xz'].T)
         return room_corners

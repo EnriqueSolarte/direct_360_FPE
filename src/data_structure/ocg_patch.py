@@ -174,13 +174,9 @@ class OCGPatches:
     def get_shape(self):
         return (self.v_bins.size-1, self.u_bins.size-1)
 
-    def get_mask(self):
-        ocg_map = self.ocg_map
-        ocg_map = ocg_map / np.max(ocg_map)
-        mask = ocg_map > self.dt.cfg.get("room_id.ocg_threshold", 0.5)
-        return mask
-
     def resize(self, scale):
+        # NOTE: This resize function only effects "bins" and "ocg_map".
+        # This will NOT maintain the correctness of instances under list_patches
         v_bins = self.v_bins
         u_bins = self.u_bins
         v_bins = self.resize_bins(self.v_bins, scale)

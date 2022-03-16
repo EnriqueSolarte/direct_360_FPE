@@ -32,7 +32,12 @@ class DataManager:
         """
         try:
             self.scene_name = self.cfg['scene'] + '_' + self.cfg['scene_version']
-            self.mp3d_fpe_dir = self.cfg["mp3d_fpe_dir"]
+            self.mp3d_fpe_dir = os.path.join(
+                os.getenv('MP3D_FPE_DIR'),
+                self.cfg['scene_category'],
+                self.cfg['scene'],
+                self.cfg['scene_version']
+            )
             self.vo_dir = glob.glob(os.path.join(self.mp3d_fpe_dir, 'vo*'))[0]
         except:
             print(f"ERROR AT READING SCENE --> {self.mp3d_fpe_dir}")

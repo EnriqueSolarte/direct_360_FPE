@@ -1,13 +1,16 @@
+import os
 import time
 import copy
 import numpy as np
+import matplotlib.pyplot as plt
 from skimage import measure
 from skimage.morphology import square, dilation, erosion
 
 # from solvers.SPA import SPA
 from utils.ocg_utils import get_line_pixels
 from utils.graph_utils import dijkstra
-from utils.visualization.room_shape import plot_room_result
+from utils.visualization.room_shape import visualize_spa_info
+from utils.visualization.room_shape import visualize_room_result
 
 
 def ocg_xyz_to_uv(ocg, xyz: np.ndarray):
@@ -74,11 +77,10 @@ class SPAError(Exception):
 
 class RoomShapeEstimator:
     def __init__(self, dt):
+        self.dt = dt
         self.cfg = dt.cfg
-        self.spa_first = None
-        self.spa_refine = None
 
-    def estimate(self, room):
+    def estimate(self, room, room_idx=0, dump_dir=None):
         '''
             Estimate initial room shape with spa_basic and run multiple spa_refine for better room shape
         '''
@@ -93,15 +95,16 @@ class RoomShapeEstimator:
         ocg_patch.resize(scale)     # TODO: Check why apply erosion before resize
 
         # Fit room and estimate room shape
-        self.spa_first = SPABasic(self.cfg, room, ocg_patch)
-        out_dict = self.spa_first.estimate_shape()
-        plot_room_result(
-            self.spa_first,
-            out_dict['corners_uv'],
-            start_uv=out_dict['start_uv'],
-            end_uv=out_dict['end_uv'],
-            # draw_plane=False
-        )
+        spa_first = SPABasic(self.cfg, room, ocg_patch)
+        out_dict = spa_first.estimate_shape(os.path.join(dump_dir, f'{room_idx}_0.png'))
+        # plot_room_result(
+        #     self.spa_first,
+        #     out_dict['corners_uv'],
+        #     start_uv=out_dict['start_uv'],
+        #     end_uv=out_dict['end_uv'],
+        #     # draw_plane=False
+        # )
+
         all_result = [out_dict]
 
         # Start refine SPA
@@ -116,20 +119,20 @@ class RoomShapeEstimator:
                 # ocg_patch.ocg_map = (ocg_patch.get_mask()).astype(np.int32)
                 # ocg_patch.ocg_map = erosion(ocg_patch.ocg_map, square(3))
                 ocg_patch.resize(scale)
-                self.spa_refine = SPARefine(
+                spa_refine = SPARefine(
                     self.cfg, room, ocg_patch,
                     all_result[-1]['corners_xz'].T,
                     prev_start_corner=all_result[-1]['start_uv'],
                     prev_end_corner=all_result[-1]['end_uv'],
                 )
-                out_dict = self.spa_refine.estimate_shape()
+                out_dict = spa_refine.estimate_shape(os.path.join(dump_dir, f'{room_idx}_{iter_idx+1}.png'))
                 all_result.append(out_dict)
-                plot_room_result(
-                    self.spa_refine,
-                    out_dict['corners_uv'],
-                    start_uv=out_dict['start_uv'],
-                    end_uv=out_dict['end_uv'],
-                )
+                # plot_room_result(
+                #     self.spa_refine,
+                #     out_dict['corners_uv'],
+                #     start_uv=out_dict['start_uv'],
+                #     end_uv=out_dict['end_uv'],
+                # )
         return all_result[-1]
 
 
@@ -182,9 +185,10 @@ class SPABasic:
     def get_patch(self):
         # TODO: Check how to adapt original mask
         # return room.local_ocg_patches.get_mask()
-        return self.ocg.get_mask()
-        # return self.ocg.ocg_map > self.cfg['room_shape_opt.ocg_threshold']
-        # return room.local_ocg_patches.ocg_map > 0
+        ocg_map = self.ocg.ocg_map
+        ocg_map = ocg_map / np.max(ocg_map)
+        mask = ocg_map > self.cfg["room_shape_opt.ocg_threshold"]
+        return mask
 
     def get_interior_area(self):
         # Use patch to create binary mask for interior area
@@ -275,6 +279,7 @@ class SPABasic:
         # corners = self.get_corners().T
 
         def find_nearest_corner(x, corners, threshold=1000):
+            # NOTE: We are not using corners anymore
             return x
             v = corners - np.expand_dims(x, axis=1)    # 2, N
             dist = np.linalg.norm(v, axis=0)
@@ -332,6 +337,7 @@ class SPABasic:
 
         # start_node, end_node = valid_edges[0]
         # Find breaking line
+        valid_edges_filtered = []
         for start_node, end_node in valid_edges:
             start_uv = ocg_xyz_to_uv(self.ocg, start_node)
             end_uv = ocg_xyz_to_uv(self.ocg, end_node)
@@ -342,13 +348,18 @@ class SPABasic:
 
             start_uv = all_nodes[start_node_idx, :]
             end_uv = all_nodes[end_node_idx, :]
+            edge_length = np.sum(np.abs(start_uv - end_uv))
 
             found_valid, break_line = self.find_break_line(start_uv, end_uv, inter_area)
             if found_valid:
-                break
+                valid_edges_filtered.append(
+                    (start_node_idx, end_node_idx, break_line, edge_length)
+                )
 
-        if not found_valid:
+        if len(valid_edges_filtered) == 0:
             raise SPAError("Cannot find a starting edge with a valid break line")
+        valid_edges_filtered.sort(key=lambda x: x[-1], reverse=True)     # Sort by edge length
+        (start_node_idx, end_node_idx, break_line, edge_length) = valid_edges_filtered[0]
         break_line = (np.array(break_line[0]), np.array(break_line[1]))
 
         return start_node_idx, end_node_idx, break_line
@@ -646,15 +657,18 @@ class SPABasic:
         corners_xz = ocg_uv_to_xz(self.ocg, corners_uv.T).T
         return corners_uv, corners_xz
 
-    def estimate_shape(self):
-        '''
-        Estimate the room shape given room class
-        '''
-        # (
-        #     graph, detailed_graph, node_to_pixel,
-        #     pixel_to_node, plane_density, corner_density,
-        #     start_idx, end_idx
-        # )
+    def estimate_shape(self, save_path=None):
+        ''' Estimate the room shape '''
+        fig, axs = plt.subplots(2, 2)
+        axs[0][0].imshow(
+            visualize_spa_info(self)
+        )
+        axs[0][1].imshow(
+            visualize_spa_info(self, draw_plane=True)
+        )
+        if save_path is not None:
+            fig.savefig(save_path)
+
         start_time = time.time()
         graph_dict = self.build_graph()
         build_time = time.time() - start_time
@@ -663,16 +677,34 @@ class SPABasic:
         # detailed_graph = graph_dict['detailed_graph']
         node_to_pixel = graph_dict['node_to_pixel']
         start_idx, end_idx = graph_dict['start_edge_idx']
-        # break_line = graph_dict['break_line']
+        break_line = graph_dict['break_line']
 
         start_uv = node_to_pixel[start_idx, :]
         end_uv = node_to_pixel[end_idx, :]
         start_xz = ocg_uv_to_xz(self.ocg, start_uv.T).T
         end_xz = ocg_uv_to_xz(self.ocg, end_uv.T).T
+        axs[0][0].imshow(
+            visualize_spa_info(
+                self, start_uv=start_uv, end_uv=end_uv, break_line=break_line)
+        )
+        axs[0][1].imshow(
+            visualize_spa_info(
+                self, start_uv=start_uv, end_uv=end_uv, break_line=break_line, draw_plane=True)
+        )
 
         start_time = time.time()
         corners_uv, corners_xz = self.solve_graph(graph, node_to_pixel, start_idx, end_idx)
         solve_time = time.time() - start_time
+        axs[1][0].imshow(
+            visualize_room_result(self, corners_uv=corners_uv, start_uv=start_uv, end_uv=end_uv, draw_plane=False)
+        )
+        axs[1][1].imshow(
+            visualize_room_result(self, corners_uv=corners_uv, start_uv=start_uv, end_uv=end_uv, draw_plane=True)
+        )
+        if save_path is not None:
+            fig.savefig(save_path)
+        plt.close(fig)
+
         return dict(
             start_uv=start_uv,
             end_uv=end_uv,
@@ -696,7 +728,18 @@ class SPARefine(SPABasic):
         self.prev_start_corner = prev_start_corner
         self.prev_end_corner = prev_end_corner
 
-    def estimate_shape(self):
+    def estimate_shape(self, save_path=None):
+        ''' Estimate the room shape '''
+        fig, axs = plt.subplots(2, 2)
+        axs[0][0].imshow(
+            visualize_spa_info(self)
+        )
+        axs[0][1].imshow(
+            visualize_spa_info(self, draw_plane=True)
+        )
+        if save_path is not None:
+            fig.savefig(save_path)
+
         start_time = time.time()
         graph_dict = self.build_graph()
         build_time = time.time() - start_time
@@ -704,10 +747,22 @@ class SPARefine(SPABasic):
         graph = graph_dict['graph']
         node_to_pixel = graph_dict['node_to_pixel']
         start_idx, end_idx = graph_dict['start_edge_idx']
+        break_line = graph_dict['break_line']
         start_uv = node_to_pixel[start_idx, :]
         end_uv = node_to_pixel[end_idx, :]
         start_xz = ocg_uv_to_xz(self.ocg, start_uv.T).T
         end_xz = ocg_uv_to_xz(self.ocg, end_uv.T).T
+
+        axs[0][0].imshow(
+            visualize_spa_info(
+                self, start_uv=start_uv, end_uv=end_uv, break_line=break_line)
+        )
+        axs[0][1].imshow(
+            visualize_spa_info(
+                self, start_uv=start_uv, end_uv=end_uv, break_line=break_line, draw_plane=True)
+        )
+        if save_path is not None:
+            fig.savefig(save_path)
         # break_line = graph_dict['break_line']
         # start_uv = node_to_pixel[start_idx, :]
         # end_uv = node_to_pixel[end_idx, :]
@@ -715,6 +770,16 @@ class SPARefine(SPABasic):
         start_time = time.time()
         corners_uv, corners_xz = self.solve_graph(graph, node_to_pixel, start_idx, end_idx)
         solve_time = time.time() - start_time
+        axs[1][0].imshow(
+            visualize_room_result(self, corners_uv=corners_uv, start_uv=start_uv, end_uv=end_uv, draw_plane=False)
+        )
+        axs[1][1].imshow(
+            visualize_room_result(self, corners_uv=corners_uv, start_uv=start_uv, end_uv=end_uv, draw_plane=True)
+        )
+        if save_path is not None:
+            fig.savefig(save_path)
+        plt.close(fig)
+
         return dict(
             start_uv=start_uv,
             end_uv=end_uv,
@@ -780,6 +845,7 @@ class SPARefine(SPABasic):
                 key=lambda x: score_similar_to_previous(x[0], x[1])
             )
 
+        valid_edges_filtered = []
         for start_node, end_node in valid_edges:
             start_uv = ocg_xyz_to_uv(self.ocg, start_node)
             end_uv = ocg_xyz_to_uv(self.ocg, end_node)
@@ -790,13 +856,18 @@ class SPARefine(SPABasic):
 
             start_uv = all_nodes[start_node_idx, :]
             end_uv = all_nodes[end_node_idx, :]
+            edge_length = np.sum(np.abs(start_uv - end_uv))
 
             found_valid, break_line = self.find_break_line(start_uv, end_uv, inter_area)
             if found_valid:
-                break
+                valid_edges_filtered.append(
+                    (start_node_idx, end_node_idx, break_line, edge_length)
+                )
 
-        if not found_valid:
+        if len(valid_edges_filtered) == 0:
             raise SPAError("Cannot find a starting edge with a valid break line")
+        valid_edges_filtered.sort(key=lambda x: x[-1], reverse=True)     # Sort by edge length
+        (start_node_idx, end_node_idx, break_line, edge_length) = valid_edges_filtered[0]
         break_line = (np.array(break_line[0]), np.array(break_line[1]))
 
         return start_node_idx, end_node_idx, break_line

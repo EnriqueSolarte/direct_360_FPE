@@ -68,9 +68,9 @@ scale_recover.apply_gt_scale: True
 
 
 room_shape_opt.valid_type: 'patch_boundary'
-room_shape_opt.ocg_threshold: 0.7
-room_shape_opt.spa_min_edge: 64
-room_shape_opt.spa_max_edge: 64
+room_shape_opt.ocg_threshold: 0.9
+room_shape_opt.spa_min_edge: 96
+room_shape_opt.spa_max_edge: 96
 room_shape_opt.grid_size_factor: 0.5
 room_shape_opt.min_edge_dist: 0.0
 # max_edge_dist: manhattan dist (pixel)
@@ -95,11 +95,6 @@ room_shape_opt.merge_corner_threshold: 0.002
 
 room_shape_opt.spa_refine_times: 2
 room_shape_opt.refine_box_size: 4     # pixel
-room_shape_opt.refine_sizes: [96, 96, 128, 128]
+# room_shape_opt.refine_sizes: [96, 96, 128, 128]
+room_shape_opt.refine_sizes: [128, 128, 128, 128]
 # refine_sizes: [108, 108, 144, 144]
-
-# Evaluation options
-evaluation.iou_threshold: 0.5
-evaluation.dist_threshold: 10
-evaluation.merge_corners: True    # corner metric
-evaluation.merge_dist: 0.5        # meter
