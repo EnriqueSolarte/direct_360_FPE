@@ -1,6 +1,6 @@
 
 import numpy as np
-
+from utils.enum import CAM_REF
 
 class Plane:
     def __init__(self, data_manager):
@@ -86,18 +86,7 @@ class Plane:
         self.line_dir = np.cross((0, 1, 0), self.normal)
 
     def apply_vo_scale(self, scale):
-        assert self.label_ref == Enum.WC_REF
-        delta_scale = scale - self.pose.scale
-
-        self.boundary = self.boundary + (delta_scale/self.pose.scale) * np.ones_like(self.boundary) * self.pose.t.reshape(3, 1)
-        self.compute_position()
-        self.distance = self.position.dot(self.normal)
-        self.compute_distance2cam()
-        # if np.linalg.norm(self.pose.t) == 0:
-        #     return True
-        # delta_t = (delta_scale/self.pose.scale) * self.pose.t / np.linalg.norm(self.pose.t)
-        # self.distance = self.distance + delta_t.dot(self.normal)
-        return True
+        raise NotImplementedError()
 
     def project_points_into_pl(self, points):
         """

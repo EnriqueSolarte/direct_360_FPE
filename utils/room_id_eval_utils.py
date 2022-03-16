@@ -93,7 +93,7 @@ def eval_2D_room_id_iou(fpe, save=True):
     plt.savefig(figure_results)
 
 
-def sumarize_restults_room_id_iou(fpe):
+def summarize_results_room_id_iou(fpe):
     assert os.path.exists(fpe.dt.cfg['results.room_id_iou'])
     
     file_results = os.path.join(fpe.dt.cfg.get("results_dir"), "results.room_id_iou.csv")

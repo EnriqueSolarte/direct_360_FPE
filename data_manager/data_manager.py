@@ -84,27 +84,42 @@ class DataManager:
         with open(label) as data_file:
             data_loaded = json.load(data_file)
 
+        recompute = False
+        corners = data_loaded["room_corners"]
         if 'kf_per_room' in data_loaded.keys():
             # ! Loading list KF per ROOM
             self.list_kf_per_room = data_loaded['kf_per_room']
-
+            if self.list_kf_per_room.__len__() != corners.__len__():
+                recompute = True
+                print("Recomputing Corners and KF per ROOMS based on GT")
         else:
+            recompute = True
+
+        if recompute:
             # ! Computes Kf per room and save them into JSON file
-            corners = data_loaded["room_corners"]
             all_cam_poses_t = self.poses_gt[:, 0:3, 3]
             self.list_kf_per_room = []
+            prune_corners = []
             for room_id, local_corners_gt in enumerate(corners):
 
                 mask = points_in_poly(all_cam_poses_t[:, (0, 2)],
                                       local_corners_gt)
 
                 if np.sum(mask) == 0:
-                    print('Room GT {} does not have any Kf'.format(room_id))
+                    print('Room GT {} does not have any Kf. This room has been ommitted'.format(room_id))
                     continue
                 kf = [f for f, m in zip(self.list_kf, mask) if m]
                 self.list_kf_per_room.append(kf)
+                prune_corners.append(local_corners_gt)
 
             data_loaded['kf_per_room'] = self.list_kf_per_room
+            # data_loaded['']
+            # ! Overwritting read corners based on the KF found inside
+            self.room_corners = []
+            for c in prune_corners:
+                c = np.asarray([[float(x[0]), float(x[1])] for x in c])
+                self.room_corners.append(c)
+
             with open(f"{self.mp3d_fpe_dir}/label.json", 'w', encoding='utf-8') as f:
                 json.dump(data_loaded, f, ensure_ascii=False, indent=4)
 
@@ -196,7 +211,9 @@ class DataManager:
                 pcl = pose_est.SE3_scaled()[0:3, :] @ extend_array_to_homogeneous(pcl)
 
             # > Projecting PCL into zero-plane
-            # pcl[1, :] = 0  # TODO verify if this is really needed
+            pcl[1, :] = 0  # TODO verify if this is really needed
+            cov = pcl @ pcl.T
+            _, s, _ = np.linalg.svd(cov/(pcl.size - 1))
 
             ly = Layout(self)
             ly.bearings = bearings
@@ -206,6 +223,7 @@ class DataManager:
             ly.idx = pose_est.idx
             ly.ly_data = data_ly
             ly.cam_ref = cam_ref
+            ly.sigma_ratio = (s[1]/s[0])
             # ly.estimate_height_ratio()
             ly.compute_cam2boundary()
             list_ly.append(ly)
