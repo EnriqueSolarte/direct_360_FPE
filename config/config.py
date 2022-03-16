@@ -35,6 +35,9 @@ def overwrite_scene_data(cfg, scene):
     cfg["scene_category"] = scene_split[-3]
     cfg["mp3d_fpe_dir"] = os.path.join(os.getenv("MP3D_FPE_DIR"), scene)
 
+    dir_results = os.path.join(os.getenv("RESULTS_DIR"), cfg.get("version", "test_evaluation"))
+    cfg['results_dir'] = dir_results
+
     return cfg
 
 

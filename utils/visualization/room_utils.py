@@ -28,7 +28,7 @@ def plot_curr_room_by_patches(fpe):
     plt.waitforbuttonpress(0.1)
 
 
-def plot_all_rooms_by_patches(fpe, only_save=True):
+def plot_all_rooms_by_patches(fpe, only_save=False):
     """
     Plots all rooms by ocg-maps
     """

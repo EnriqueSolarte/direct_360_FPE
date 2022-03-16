@@ -7,7 +7,7 @@ from src.solvers.room_shape_estimator import SPAError
 from src.data_structure import OCGPatches, Room
 from utils.geometry_utils import find_N_peaks
 from utils.ocg_utils import compute_iou_ocg_map
-from utils.enum import ROOM_STATUS
+from utils.enum import ROOM_STATUS, CAM_REF
 from utils.visualization.room_utils import plot_curr_room_by_patches
 from utils.visualization.room_utils import plot_all_rooms_by_patches
 from utils.visualization.room_utils import plot_estimated_orientations
@@ -30,9 +30,53 @@ class DirectFloorPlanEstimation:
 
         print("DirectFloorPlanEstimation initialized successfully")
 
+    def compute_non_sequential_fpe(self):
+        """
+        For debugging purposes only. This method estimates
+        a FPE based on all LYs and rooms ROOM-ID knowing in advance
+        """
+        print("Runing Non-sequential estimation")
+        list_ly = self.dt.get_list_ly(cam_ref=CAM_REF.WC_SO3)
+
+        # ! Computes vo-scale
+        if self.dt.cfg.get("scale_recover.apply_gt_scale", False):
+            if not self.scale_recover.estimate_vo_and_gt_scale():
+                raise ValueError("Scale recovering failed")
+        else:
+            if not self.scale_recover.estimate_vo_scale():
+                raise ValueError("Scale recovering failed")
+
+        self.is_initialized = True
+
+        for kfs in self.dt.list_kf_per_room:
+            print(f"Running: {self.dt.scene_name} - eval-version:{self.dt.cfg['eval_version']}")
+        
+            list_ly_per_room = [ly for ly in list_ly
+                                if ly.idx in kfs
+                                ]
+
+            [self.initialize_layout(ly) for ly in list_ly_per_room]
+            [self.add_layout(ly) for ly in list_ly_per_room]
+
+           # ! Initialize current room
+            self.curr_room = Room(self.dt)
+            if not self.curr_room.initialize(list_ly_per_room[0]):
+                raise ValueError("Somtheing is went wrong...!!!")
+
+            self.list_rooms.append(self.curr_room)
+            [self.curr_room.add_layout(ly) for ly in list_ly_per_room[1:]]
+
+        if not self.global_ocg_patch.initialize(self.list_rooms[0].local_ocg_patches):
+            raise ValueError("Somtheing is went wrong...!!!")
+
+        [self.global_ocg_patch.list_patches.append(r.local_ocg_patches) for r in self.list_rooms[1:]]
+        self.global_ocg_patch.update_bins()
+        self.global_ocg_patch.update_ocg_map(binary_map=True)
+        print("done")
+
     def estimate(self, layout):
         """
-        It add the passed Layout to the systems and estimated the floor plan
+        It adds the passed Layout to the systems and estimated the floor plan
         """
         print(f"Running: {self.dt.scene_name} - eval-version:{self.dt.cfg['eval_version']}")
         if not self.is_initialized:
@@ -43,7 +87,7 @@ class DirectFloorPlanEstimation:
             return layout.is_initialized
 
         if self.eval_new_room_creation(layout):
-            self.eval_room_overlapping()
+            # self.eval_room_overlapping()
             # prev_room = self.curr_room
             self.curr_room = self.select_room(layout)
             if self.curr_room is None:
@@ -240,9 +284,9 @@ class DirectFloorPlanEstimation:
                 #     ocg_map_estimation=tmp_ocg_map
                 # )
                 intersection = (room_ocg_map + tmp_ocg_map) > 1
-                iou = np.sum(intersection)/np.max((np.sum(room_ocg_map), np.sum(tmp_ocg_map)))
-                # iou = np.sum(intersection)/np.min((np.sum(room_ocg_map), np.sum(tmp_ocg_map)))
-                
+                # iou = np.sum(intersection)/np.max((np.sum(room_ocg_map), np.sum(tmp_ocg_map)))
+                iou = np.sum(intersection)/np.min((np.sum(room_ocg_map), np.sum(tmp_ocg_map)))
+
                 iou_meas.append(iou)
                 rooms_candidates.append(tmp_room)
                 # if iou > self.dt.cfg.get("room_id.iuo_overlapping_allowed", 0.25):
