@@ -122,8 +122,8 @@ class RoomShapeEstimator:
                 spa_refine = SPARefine(
                     self.cfg, room, ocg_patch,
                     all_result[-1]['corners_xz'].T,
-                    prev_start_corner=all_result[-1]['start_uv'],
-                    prev_end_corner=all_result[-1]['end_uv'],
+                    prev_start_corner=all_result[-1]['start_xz'],
+                    prev_end_corner=all_result[-1]['end_xz'],
                 )
                 out_dict = spa_refine.estimate_shape(os.path.join(dump_dir, f'{room_idx}_{iter_idx+1}.png'))
                 all_result.append(out_dict)
@@ -828,23 +828,6 @@ class SPARefine(SPABasic):
             raise SPAError('No valid edges find in SPARefine')
         np.random.shuffle(valid_edges)
 
-        def score_similar_to_previous(start_xy, end_xy, threshold=1.0):
-            penalty = 0
-            if np.linalg.norm(start_xy - self.prev_start_corner) < threshold:
-                penalty += 1
-            if np.linalg.norm(start_xy - self.prev_end_corner) < threshold:
-                penalty += 1
-            if np.linalg.norm(end_xy - self.prev_start_corner) < threshold:
-                penalty += 1
-            if np.linalg.norm(end_xy - self.prev_end_corner) < threshold:
-                penalty += 1
-            return penalty
-        if self.prev_start_corner is not None and self.prev_end_corner is not None:
-            # Avoid choosing the same start and end corners if they are given
-            valid_edges.sort(
-                key=lambda x: score_similar_to_previous(x[0], x[1])
-            )
-
         valid_edges_filtered = []
         for start_node, end_node in valid_edges:
             start_uv = ocg_xyz_to_uv(self.ocg, start_node)
@@ -866,7 +849,34 @@ class SPARefine(SPABasic):
 
         if len(valid_edges_filtered) == 0:
             raise SPAError("Cannot find a starting edge with a valid break line")
-        valid_edges_filtered.sort(key=lambda x: x[-1], reverse=True)     # Sort by edge length
+
+        # Sort by edge length
+        valid_edges_filtered.sort(key=lambda x: x[-1], reverse=True)
+        if self.prev_start_corner is not None and self.prev_end_corner is not None:
+            # Avoid choosing the same start and end corners if they are given
+            prev_start_uv = ocg_xyz_to_uv(self.ocg, self.prev_start_corner)
+            prev_end_uv = ocg_xyz_to_uv(self.ocg, self.prev_end_corner)
+
+            def score_similar_to_previous(start_node_idx, end_node_idx, threshold=5):
+                # Score the similarity by a threshold (pixel distance)
+                start_uv = all_nodes[start_node_idx, :]
+                end_uv = all_nodes[end_node_idx, :]
+                penalty = 0
+                if np.linalg.norm(start_uv - prev_start_uv) < threshold:
+                    penalty += 1
+                if np.linalg.norm(start_uv - prev_end_uv) < threshold:
+                    penalty += 1
+                if np.linalg.norm(end_uv - prev_start_uv) < threshold:
+                    penalty += 1
+                if np.linalg.norm(end_uv - prev_end_uv) < threshold:
+                    penalty += 1
+                return penalty
+
+            # Sort by starting-edge similarity
+            valid_edges_filtered.sort(
+                key=lambda x: score_similar_to_previous(x[0], x[1])
+            )
+
         (start_node_idx, end_node_idx, break_line, edge_length) = valid_edges_filtered[0]
         break_line = (np.array(break_line[0]), np.array(break_line[1]))
 
