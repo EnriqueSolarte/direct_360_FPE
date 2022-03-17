@@ -20,9 +20,9 @@ def main(config_file, scene_list_file, version):
 
     cfg = read_config(config_file=config_file)
 
-    # for param in np.linspace(1, 10, 10):
-    #     ver = version + "_sigma{0:2.2f}".format(param)
-    #     cfg["room_id.temporal_weighting_sigma"] = float(param) 
+    # for param in (0.6, 0.75, 0.8, 0.9):
+    #     ver = version + f"_over{param}"
+    #     cfg["room_id.iou_overlapping_allowed"] = param 
     
     # for param in (0.1, 0.25, 0.5, 0.75, 0.95):
     #     ver = version + f"_thr{param}"
@@ -30,6 +30,8 @@ def main(config_file, scene_list_file, version):
         
     # ! Running every scene
     for scene in list_scenes:
+        # if "pRbA3pwrgk9/2" not in scene:
+        #     continue
         overwrite_scene_data(cfg, scene)
         overwite_version(cfg, version)
         
@@ -41,23 +43,26 @@ def main(config_file, scene_list_file, version):
         for ly in list_ly:
             fpe.estimate(ly)
 
-        # fpe.eval_room_overlapping()
+        fpe.eval_room_overlapping()
         
         fpe.global_ocg_patch.update_bins()
         fpe.global_ocg_patch.update_ocg_map()
-        # plot_all_rooms_by_patches(fpe, only_save=True)
+        # plot_all_rooms_by_patches(fpe)
+        # plt.show()
 
         # exit()
         eval_2D_room_id_iou(fpe)
         fpe.dt.save_config()
-        
-            # sumarize_restults_room_id_iou(fpe)
+    
+        # sumarize_restults_room_id_iou(fpe)
 
 
 if __name__ == '__main__':
     # TODO read from  passed args
     config_file = "./config/config.yaml"
     scene_list_file = './data/all_scenes_list.csv'
-    version = 'test_no_merge_sigma1.00'
+    # version = 'eval_no_weighting_thr0.5_clip6'
+    version = 'best_room_id_norm_min'
+    
 
     main(config_file, scene_list_file, version)
