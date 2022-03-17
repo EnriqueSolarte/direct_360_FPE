@@ -51,7 +51,7 @@ class DirectFloorPlanEstimation:
 
         for kfs in self.dt.list_kf_per_room:
             print(f"Running: {self.dt.scene_name} - eval-version:{self.dt.cfg['eval_version']}")
-        
+
             list_ly_per_room = [ly for ly in list_ly
                                 if ly.idx in kfs
                                 ]
@@ -88,7 +88,7 @@ class DirectFloorPlanEstimation:
             return layout.is_initialized
 
         if self.eval_new_room_creation(layout):
-            # self.eval_room_overlapping()
+            self.eval_room_overlapping()
             # prev_room = self.curr_room
             self.curr_room = self.select_room(layout)
             if self.curr_room is None:
@@ -109,7 +109,7 @@ class DirectFloorPlanEstimation:
         self.update_data(layout)
         # plot_curr_room_by_patches(self)
         # plot_all_rooms_by_patches(self)
-        # plot_estimated_orientations(self.curr_room.theta_z)
+        # # plot_estimated_orientations(self.curr_room.theta_z)
 
     def update_data(self, layout):
         """
@@ -260,6 +260,28 @@ class DirectFloorPlanEstimation:
 
         layout.list_pl = list_pl
 
+    def compute_iou_overlapping(self, ocg_map_a, ocg_map_b):
+        """
+        Computes the IoU metrics for the passed ocg_map
+        """
+        assert self.dt.cfg["room_id.iou_overlapping_norm"] in ("min", "max", "union")
+        if self.dt.cfg["room_id.iou_overlapping_norm"] == "union":
+            iou = compute_iou_ocg_map(
+                ocg_map_target=ocg_map_a,
+                ocg_map_estimation=ocg_map_b
+            )
+            return iou
+        elif self.dt.cfg["room_id.iou_overlapping_norm"] == "min":
+            intersection = (ocg_map_a + ocg_map_b) > 1
+            iou = np.sum(intersection)/np.min((np.sum(ocg_map_a), np.sum(ocg_map_b)))
+            return iou
+        elif self.dt.cfg["room_id.iou_overlapping_norm"] == "max":
+            intersection = (ocg_map_a + ocg_map_b) > 1
+            iou = np.sum(intersection)/np.max((np.sum(ocg_map_a), np.sum(ocg_map_b)))
+            return iou
+        else:
+            raise ValueError("Error")
+
     def eval_room_overlapping(self):
         """
         Merges Rooms based on the overlapping of OCGPatches (local_ocg_map)
@@ -280,21 +302,15 @@ class DirectFloorPlanEstimation:
             for tmp_ocg_map, tmp_room in zip(self.global_ocg_patch.ocg_map, self.list_rooms):
                 if tmp_room is room:
                     continue
-                # iou = compute_iou_ocg_map(
-                #     ocg_map_target=room_ocg_map,
-                #     ocg_map_estimation=tmp_ocg_map
-                # )
-                intersection = (room_ocg_map + tmp_ocg_map) > 1
-                # iou = np.sum(intersection)/np.max((np.sum(room_ocg_map), np.sum(tmp_ocg_map)))
-                iou = np.sum(intersection)/np.min((np.sum(room_ocg_map), np.sum(tmp_ocg_map)))
-
+                
+                iou = self.compute_iou_overlapping(room_ocg_map, tmp_ocg_map)
                 iou_meas.append(iou)
                 rooms_candidates.append(tmp_room)
-                # if iou > self.dt.cfg.get("room_id.iuo_overlapping_allowed", 0.25):
+                # if iou > self.dt.cfg.get("room_id.iou_overlapping_allowed", 0.25):
                 # ! Exits an overlapping betwen rooms
                 # *(1) merge rooms and append at the edn of list_rooms (change ready flag)
                 # self.merge_rooms(room, tmp_room)
-            if np.sum(np.array(iou_meas) > self.dt.cfg.get("room_id.iuo_overlapping_allowed", 0.25)) > 0:
+            if np.sum(np.array(iou_meas) > self.dt.cfg.get("room_id.iou_overlapping_allowed", 0.25)) > 0:
                 self.merge_rooms(room, rooms_candidates[np.argmax(iou_meas)])
 
         self.delete_rooms()
