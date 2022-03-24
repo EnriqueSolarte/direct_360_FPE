@@ -65,12 +65,12 @@ class DataManager:
             self.list_depth_maps = [os.path.join(self.mp3d_fpe_dir, f'depth/tiff/{f}.tiff') for f in self.list_kf]
 
             # ! Load GT floor plan & point cloud
-            self.room_corners, self.axis_corners = self.load_fp_gt(os.path.join(self.mp3d_fpe_dir, 'label.json'))
+            self.room_corners, self.axis_corners, self.list_kf_per_room = \
+                self.load_fp_gt(os.path.join(self.mp3d_fpe_dir, 'label.json'))
 
             # NOTE: pcl_gt is (N, 3) and z-axis is the height
             self.pcl_gt = read_ply(os.path.join(self.mp3d_fpe_dir, 'pcl.ply'))
 
-            self.compute_kf_per_room()
             self.cam = Sphere(shape=self.cfg['image_resolution'])
         except:
             raise ValueError("Data_manager couldn't access to the data..")
@@ -113,13 +113,6 @@ class DataManager:
                 prune_corners.append(local_corners_gt)
 
             data_loaded['kf_per_room'] = self.list_kf_per_room
-            # data_loaded['']
-            # ! Overwritting read corners based on the KF found inside
-            self.room_corners = []
-            for c in prune_corners:
-                c = np.asarray([[float(x[0]), float(x[1])] for x in c])
-                self.room_corners.append(c)
-
             with open(f"{self.mp3d_fpe_dir}/label.json", 'w', encoding='utf-8') as f:
                 json.dump(data_loaded, f, ensure_ascii=False, indent=4)
 
@@ -162,7 +155,20 @@ class DataManager:
             axis_corners = d['axis_corners']
             axis_corners = np.asarray([[float(x[0]), float(x[1])]
                                        for x in axis_corners])
-        return room_corners, axis_corners
+
+        # Compute kf per room and mask out unvisited GT rooms
+        poses_gt_xyz = self.poses_gt[:, :3, 3]
+        kf_per_room = []
+        masked_room_corners = []
+        for corners in room_corners:
+            mask = points_in_poly(poses_gt_xyz[:, [0, 2]], corners)
+            if np.sum(mask) == 0:
+                continue
+            kf = [f for f, m in zip(self.list_kf, mask) if m]
+            kf_per_room.append(kf)
+            masked_room_corners.append(corners)
+        assert len(masked_room_corners) > 0
+        return masked_room_corners, axis_corners, kf_per_room
 
     def load_points_gt(self, fn):
         plydata = PlyData.read(fn)
