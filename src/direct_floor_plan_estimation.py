@@ -359,7 +359,7 @@ class DirectFloorPlanEstimation:
         if room_a is self.curr_room or room_b is self.curr_room:
             self.curr_room = new_room
 
-    def compute_room_shape_all(self):
+    def compute_room_shape_all(self, plot=True):
         ''' Compute the room shape for all the rooms at once '''
         room_corners = []
         for room_idx, room in enumerate(tqdm(self.list_rooms, desc="Running iSPA...")):
@@ -367,9 +367,13 @@ class DirectFloorPlanEstimation:
                 continue
             try:
                 os.makedirs(os.path.join(self.dt.cfg.get("results_dir"), self.dt.scene_name), exist_ok=True)
+                if plot:
+                    dump_dir = os.path.join(self.dt.cfg.get("results_dir"), self.dt.scene_name)
+                else:
+                    dump_dir = None
                 out_dict = room.compute_room_shape(
                     room_idx=room_idx,
-                    dump_dir=os.path.join(self.dt.cfg.get("results_dir"), self.dt.scene_name)
+                    dump_dir=dump_dir,
                 )
                 room_corners.append(out_dict['corners_xz'].T)
             except SPAError as e:

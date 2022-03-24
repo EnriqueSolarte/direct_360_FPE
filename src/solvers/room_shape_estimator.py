@@ -90,23 +90,15 @@ class RoomShapeEstimator:
         min_edge = self.cfg['room_shape_opt.spa_min_edge']
         max_edge = self.cfg['room_shape_opt.spa_max_edge']
         new_height, new_width, scale = fit_size_range(height, width, min_edge, max_edge)
-        # ocg_patch.ocg_map = (ocg_patch.get_mask()).astype(np.int32)
-        # ocg_patch.ocg_map = erosion(ocg_patch.ocg_map, square(3))
-        ocg_patch.resize(scale)     # TODO: Check why apply erosion before resize
+        ocg_patch.resize(scale)
 
         # Fit room and estimate room shape
         spa_first = SPABasic(self.cfg, room, ocg_patch)
-        out_dict = spa_first.estimate_shape(os.path.join(dump_dir, f'{room_idx}_0.png'))
-        # plot_room_result(
-        #     self.spa_first,
-        #     out_dict['corners_uv'],
-        #     start_uv=out_dict['start_uv'],
-        #     end_uv=out_dict['end_uv'],
-        #     # draw_plane=False
-        # )
+        out_dict = spa_first.estimate_shape(
+            None if dump_dir is None else os.path.join(dump_dir, f'{room_idx}_0.png')
+        )
 
         all_result = [out_dict]
-
         # Start refine SPA
         if self.cfg['room_shape_opt.spa_refine_times'] > 0:
             for iter_idx in range(self.cfg['room_shape_opt.spa_refine_times']):
@@ -116,8 +108,6 @@ class RoomShapeEstimator:
                 ocg_patch = copy.deepcopy(room.local_ocg_patches)       # Copy again from original size
                 height, width = ocg_patch.get_shape()
                 new_height, new_width, scale = fit_size_range(height, width, refine_size, refine_size)
-                # ocg_patch.ocg_map = (ocg_patch.get_mask()).astype(np.int32)
-                # ocg_patch.ocg_map = erosion(ocg_patch.ocg_map, square(3))
                 ocg_patch.resize(scale)
                 spa_refine = SPARefine(
                     self.cfg, room, ocg_patch,
@@ -125,14 +115,10 @@ class RoomShapeEstimator:
                     prev_start_corner=all_result[-1]['start_xz'],
                     prev_end_corner=all_result[-1]['end_xz'],
                 )
-                out_dict = spa_refine.estimate_shape(os.path.join(dump_dir, f'{room_idx}_{iter_idx+1}.png'))
+                out_dict = spa_refine.estimate_shape(
+                    None if dump_dir is None else os.path.join(dump_dir, f'{room_idx}_{iter_idx+1}.png')
+                )
                 all_result.append(out_dict)
-                # plot_room_result(
-                #     self.spa_refine,
-                #     out_dict['corners_uv'],
-                #     start_uv=out_dict['start_uv'],
-                #     end_uv=out_dict['end_uv'],
-                # )
         return all_result[-1]
 
 
