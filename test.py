@@ -9,23 +9,25 @@ import matplotlib.pyplot as plt
 from utils.visualization.room_utils import plot_curr_room_by_patches, plot_all_rooms_by_patches
 from utils.visualization.room_utils import plot_floor_plan
 from utils.room_id_eval_utils import eval_2D_room_id_iou
+from utils.visualization.vispy_dynamic_visualization.dynamic_vis_utils import plot_dyn_from_list_ly
 
 def main(config_file):
     cfg = read_config(config_file=config_file)
     dt = DataManager(cfg)
     fpe = DirectFloorPlanEstimation(dt)
     list_ly = dt.get_list_ly(cam_ref=CAM_REF.WC_SO3)
-
+    
     for ly in list_ly:
         fpe.estimate(ly)
-
-    fpe.global_ocg_patch.update_bins()
-    fpe.global_ocg_patch.update_ocg_map()
+        
+    plot_dyn_from_list_ly(list_ly)
+    # fpe.global_ocg_patch.update_bins()
+    # fpe.global_ocg_patch.update_ocg_map()
    
-    # list_pl = flatten_lists_of_lists([ly.list_pl for ly in list_ly if ly.list_pl.__len__() > 0])
-    # plot_color_plc(np.hstack([ly.boundary for ly in list_pl]).T)
-    plot_all_rooms_by_patches(fpe)
-    plt.show()
+    # # list_pl = flatten_lists_of_lists([ly.list_pl for ly in list_ly if ly.list_pl.__len__() > 0])
+    # # plot_color_plc(np.hstack([ly.boundary for ly in list_pl]).T)
+    # plot_all_rooms_by_patches(fpe)
+    # plt.show()
 
     # corners_list = fpe.compute_room_shape_all()
     # plot_floor_plan(corners_list, fpe.global_ocg_patch)
