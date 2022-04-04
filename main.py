@@ -11,7 +11,7 @@ def main(config_file):
     dt = DataManager(cfg)
     fpe = DirectFloorPlanEstimation(dt)
     fpe.initialize()
-    vis = Visualization(fpe)
+    vis = VisualizationFPE(fpe)
     list_ly = dt.get_list_ly(cam_ref=Enum.CAM_REF.WC_SO3)
     
     for ly in list_ly:
@@ -22,12 +22,9 @@ def main(config_file):
     list_rooms_gt = dt.get_list_rooms_gt()
     
     evaluate(list_rooms_est, list_rooms_gt)
-    plot_2d_fpe(list_rooms_est)
-    plot_2d_fpe(list_rooms_gt)
-    
-    plot_3D_FPE(list_rooms_est)
-    plot_3D_FPE(list_rooms_gt)
-    
+    vis.plot_2d_fpe(list_rooms_est)
+    vis.plot_2d_fpe(list_rooms_gt)
+
 
 
 if __name__ == '__main__':

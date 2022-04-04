@@ -13,6 +13,8 @@ from skimage.measure import points_in_poly
 import datetime
 import sys
 import yaml
+import matplotlib.pyplot as plt
+
 
 
 class DataManager:
@@ -23,7 +25,7 @@ class DataManager:
 
         self.list_ly = []
         print("DataManager successfully loaded...")
-        print(f"Scene Category: {self.cfg['scene_category']}")
+        print(f"Scene Category: {self.cfg['data.scene_category']}")
         print(f"Scene: {self.scene_name}")
 
     def set_paths(self):
@@ -31,16 +33,16 @@ class DataManager:
         Sets all paths necessary for the DataManager
         """
         try:
-            self.scene_name = self.cfg['scene'] + '_' + self.cfg['scene_version']
-            self.mp3d_fpe_dir = os.path.join(
-                os.getenv('MP3D_FPE_DIR'),
-                self.cfg['scene_category'],
-                self.cfg['scene'],
-                self.cfg['scene_version']
+            self.scene_name = self.cfg['data.scene'] + '_' + self.cfg['data.scene_version']
+            self.mp3d_fpe_scene_dir = os.path.join(
+                self.cfg['path.mp3d_fpe_dir'],
+                self.cfg['data.scene_category'],
+                self.cfg['data.scene'],
+                self.cfg['data.scene_version']
             )
-            self.vo_dir = glob.glob(os.path.join(self.mp3d_fpe_dir, 'vo*'))[0]
+            self.mp3d_fpe_scene_vo_dir = glob.glob(os.path.join(self.mp3d_fpe_scene_dir, 'vo*'))[0]
         except:
-            print(f"ERROR AT READING SCENE --> {self.mp3d_fpe_dir}")
+            print(f"ERROR AT READING SCENE --> {self.mp3d_fpe_scene_dir}")
             raise ValueError("Data_manager couldn't access to the data..")
 
     def load_data(self):
@@ -49,72 +51,31 @@ class DataManager:
         """
         # ! List of Kf
         try:
-            with open(os.path.join(self.vo_dir, 'keyframe_list.txt'), 'r') as f:
+            with open(os.path.join(self.mp3d_fpe_scene_vo_dir, 'keyframe_list.txt'), 'r') as f:
                 self.list_kf = sorted([int(kf) for kf in f.read().splitlines()])
 
             # ! List of camera poses
             self.load_camera_poses()
 
             # ! List of LY estimations
-            self.list_ly_npy = [os.path.join(self.vo_dir, self.cfg['ly_model'], f'{f}.npy') for f in self.list_kf]
+            self.list_ly_npy = [os.path.join(self.mp3d_fpe_scene_vo_dir, self.cfg['data.ly_model'], f'{f}.npy') for f in self.list_kf]
 
             # ! List of RGB images
-            self.list_rgb_img = [os.path.join(self.mp3d_fpe_dir, f'rgb/{f}.png') for f in self.list_kf]
+            self.list_rgb_img = [os.path.join(self.mp3d_fpe_scene_dir, f'rgb/{f}.png') for f in self.list_kf]
 
             # ! List of DepthGT maps
-            self.list_depth_maps = [os.path.join(self.mp3d_fpe_dir, f'depth/tiff/{f}.tiff') for f in self.list_kf]
+            self.list_depth_maps = [os.path.join(self.mp3d_fpe_scene_dir, f'depth/tiff/{f}.tiff') for f in self.list_kf]
 
             # ! Load GT floor plan & point cloud
             self.room_corners, self.axis_corners, self.list_kf_per_room = \
-                self.load_fp_gt(os.path.join(self.mp3d_fpe_dir, 'label.json'))
+                self.load_fp_gt(os.path.join(self.mp3d_fpe_scene_dir, 'label.json'))
 
             # NOTE: pcl_gt is (N, 3) and z-axis is the height
-            self.pcl_gt = read_ply(os.path.join(self.mp3d_fpe_dir, 'pcl.ply'))
+            self.pcl_gt = read_ply(os.path.join(self.mp3d_fpe_scene_dir, 'pcl.ply'))
 
-            self.cam = Sphere(shape=self.cfg['image_resolution'])
+            self.cam = Sphere(shape=self.cfg['data.image_resolution'])
         except:
             raise ValueError("Data_manager couldn't access to the data..")
-
-    def compute_kf_per_room(self):
-        """
-        Computes the kf stored per room for evaluation purposes
-        """
-        label = os.path.join(self.mp3d_fpe_dir, 'label.json')
-
-        with open(label) as data_file:
-            data_loaded = json.load(data_file)
-
-        recompute = False
-        corners = data_loaded["room_corners"]
-        if 'kf_per_room' in data_loaded.keys():
-            # ! Loading list KF per ROOM
-            self.list_kf_per_room = data_loaded['kf_per_room']
-            if self.list_kf_per_room.__len__() != corners.__len__():
-                recompute = True
-                print("Recomputing Corners and KF per ROOMS based on GT")
-        else:
-            recompute = True
-
-        if recompute:
-            # ! Computes Kf per room and save them into JSON file
-            all_cam_poses_t = self.poses_gt[:, 0:3, 3]
-            self.list_kf_per_room = []
-            prune_corners = []
-            for room_id, local_corners_gt in enumerate(corners):
-
-                mask = points_in_poly(all_cam_poses_t[:, (0, 2)],
-                                      local_corners_gt)
-
-                if np.sum(mask) == 0:
-                    print('Room GT {} does not have any Kf. This room has been ommitted'.format(room_id))
-                    continue
-                kf = [f for f, m in zip(self.list_kf, mask) if m]
-                self.list_kf_per_room.append(kf)
-                prune_corners.append(local_corners_gt)
-
-            data_loaded['kf_per_room'] = self.list_kf_per_room
-            with open(f"{self.mp3d_fpe_dir}/label.json", 'w', encoding='utf-8') as f:
-                json.dump(data_loaded, f, ensure_ascii=False, indent=4)
 
     def load_camera_poses(self):
         """
@@ -122,7 +83,7 @@ class DataManager:
         """
         # ! Loading estimated poses
         estimated_poses_file = os.path.join(
-            self.vo_dir,
+            self.mp3d_fpe_scene_vo_dir,
             'cam_pose_estimated.csv')
 
         assert os.path.isfile(
@@ -133,7 +94,7 @@ class DataManager:
 
         # ! Loading GT camera poses
         gt_poses_file = os.path.join(
-            self.mp3d_fpe_dir,
+            self.mp3d_fpe_scene_dir,
             'frm_ref.txt')
 
         assert os.path.isfile(
@@ -145,8 +106,13 @@ class DataManager:
             list(read_trajectory(gt_poses_file).values()))[idx, :, :]
 
     def load_fp_gt(self, fn):
+        """
+        Load GT information defined in the label.json file. Additionally, it clusters kf per room
+        and masks out room which are defined without frame inside
+        """
         with open(fn, 'r') as f:
             d = json.load(f)
+            self.cfg['data.label_version'] = d['version']
             room_list = d['room_corners']
             room_corners = []
             for corners in room_list:
@@ -161,7 +127,8 @@ class DataManager:
         kf_per_room = []
         masked_room_corners = []
         for corners in room_corners:
-            mask = points_in_poly(poses_gt_xyz[:, [0, 2]], corners)
+            cr = np.vstack((corners, corners[-1, :]))
+            mask = points_in_poly(poses_gt_xyz[:, [0, 2]], cr)
             if np.sum(mask) == 0:
                 continue
             kf = [f for f, m in zip(self.list_kf, mask) if m]
@@ -207,7 +174,7 @@ class DataManager:
             bearings = get_bearings_from_phi_coords(phi_coords=bearings_phi)
 
             # !Projecting bearing to 3D as pcl --> boundary
-            ly_scale = self.cfg['ly_scale'] / bearings[1, :]
+            ly_scale = self.cfg['data.ly_scale'] / bearings[1, :]
             # pcl = (1-pose.t[1])*ly_scale * bearings
             pcl = ly_scale * bearings
 
@@ -260,3 +227,40 @@ class DataManager:
             print("#")
             print('# {}'.format(timestamp))
             sys.stdout = original_stdout
+
+    def save_gt_rooms(self, output_dir):
+        """
+        Saves the gt rooms defined for the scene
+        """
+        data = dict()
+        assert self.list_kf_per_room.__len__() == self.room_corners.__len__()
+        plt.figure("GT-Rooms")
+        plt.clf()
+        plt.title(f"GT-Rooms - label version:{self.cfg['data.label_version']}")
+        for idx, list_kf, corners in zip(range(self.room_corners.__len__()), self.list_kf_per_room, self.room_corners):
+            cr = [[float(c[0]), float(c[1])] for c in corners]
+            data[f"room.{idx}"] = dict(
+                list_kf=list_kf,
+                corners=cr
+            )
+            vis = np.vstack((corners, corners[0, :]))
+            plt.plot(vis[:, 0], vis[:, 1])
+            
+            # ! plotting KF poses
+            kf_poses = np.vstack([self.poses_gt[self.list_kf.index(i) - 1][(0, 2), 3] for i in list_kf])
+                # ! Plotting rooms
+            plt.scatter(kf_poses[:, 0], kf_poses[:, 1])
+        
+        plt.axis('equal')
+        plt.draw()
+        plt.savefig(os.path.join(output_dir, f"gt_rooms_{self.cfg['data.label_version']}.jpg"), bbox_inches='tight') 
+        data["data.scene"] = self.cfg["data.scene"]
+        data["data.scene_version"] = self.cfg["data.scene_version"]
+        data["data.scene_category"] = self.cfg["data.scene_category"]
+        data["data.label_version"] = self.cfg["data.label_version"]
+        
+        filename = os.path.join(output_dir, f"room_gt_{data['data.label_version']}.yaml")
+        with open(filename, "w") as file:
+            yaml.dump(data, file)
+        
+       

@@ -47,12 +47,12 @@ def main(config_file, scene_list_file, version):
         
         fpe.global_ocg_patch.update_bins()
         fpe.global_ocg_patch.update_ocg_map()
-        # plot_all_rooms_by_patches(fpe)
-        # plt.show()
+        plot_all_rooms_by_patches(fpe)
+        plt.show()
 
         # exit()
-        eval_2D_room_id_iou(fpe)
-        fpe.dt.save_config()
+        # eval_2D_room_id_iou(fpe)
+        # fpe.dt.save_config()
     
         # sumarize_restults_room_id_iou(fpe)
 
@@ -60,7 +60,7 @@ def main(config_file, scene_list_file, version):
 if __name__ == '__main__':
     # TODO read from  passed args
     config_file = "./config/config.yaml"
-    scene_list_file = './data/all_scenes_list.csv'
+    scene_list_file = './data/all_multiroom_scenes_list.csv'
     # version = 'eval_no_weighting_thr0.5_clip6'
     version = 'best_room_id_norm_min'
     
