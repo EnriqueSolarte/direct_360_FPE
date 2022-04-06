@@ -1,8 +1,11 @@
 import numpy as np
 from tqdm import tqdm
-
+import matplotlib.pyplot as plt
+import os
+from utils.ocg_utils import compute_uv_bins
 from .vo_scale_recover import VO_ScaleRecover
 from .gt_scale_recover import GT_ScaleRecover
+import yaml
 
 
 class ScaleRecover:
@@ -143,8 +146,46 @@ class ScaleRecover:
         self.estimate_vo_scale()
         self.gt_scale = self.gt_scale_recover.estimate(self)
 
-        #* We are assuming that by estimating vo and gt scale is because we want to 
+        # * We are assuming that by estimating vo and gt scale is because we want to
         # * apply GT scale
         [ly.apply_gt_scale(self.gt_scale) for ly in self.dt.list_ly]
 
         return self.gt_scale, self.vo_scale
+
+    def save_estimation(self, output_dir):
+        """
+        Saves the scale estimation into a directory
+        """
+        # ! Save image LY aligned
+        plt.figure("GT-scale recover")
+        plt.clf()
+        plt.title("GT-scale recover - VO-Scale:{0:0.3f} - GT-Scale:{1:0.3f}".format(
+            self.vo_scale, self.gt_scale))
+        pcl_ly = np.hstack([
+            ly.boundary for ly in self.dt.list_ly
+            if ly.cam2boundary.max() < 20
+        ])
+
+        ubins, vbins = compute_uv_bins(pcl_ly, self.dt.cfg['scale_recover.grid_size'], padding=10)
+        x = pcl_ly[0, :]
+        z = pcl_ly[2, :]
+        grid, _, _ = np.histogram2d(x, z, bins=(ubins, vbins))
+        mask = grid > 20
+        grid[mask] = 20
+        grid = grid/20
+        plt.imshow(grid)
+        plt.draw()
+        plt.savefig(os.path.join(output_dir, "scale_recovery.jpg"), bbox_inches='tight')
+
+        # ! Save json data
+        data = dict()
+        for key in self.dt.cfg.keys():
+            if "scale_recover" in key or "data" in key:
+                data[key] = self.dt.cfg[key]
+
+        data["data.vo_scale"] = float(self.vo_scale)
+        data["data.gt_scale"] = float(self.gt_scale)
+
+        filename = os.path.join(output_dir, "scale_recovery.yaml")
+        with open(filename, "w") as file:
+            yaml.dump(data, file)

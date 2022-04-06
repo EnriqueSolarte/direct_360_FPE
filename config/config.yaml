@@ -1,29 +1,18 @@
-
-# ! Scene Information
-eval_version: "re-implementation"
-scene_category: "SINGLE_ROOM_SCENES"
-scene_category: "MULTI_ROOM_SCENES"
-
-scene: "i5noydFURQK"
-scene_version: "0"
-
-scene: "2t7WUuJeko7"
-scene_version: "1"
-
-scene: "i5noydFURQK"
-scene_version: "0"
-
-# scene: "Z6MFQCViBuw"
-# scene_version: "0"
-
-# scene: "PuKPg4mmafe"
-# scene_version: "0"
+path.mp3d_fpe_dir: /media/NFS/kike/MP3D_360_FPE/MP3D_360_FPE/
+path.results_dir: /media/NFS/kike/MP3D_360_FPE/MP3D_360_FPE/fpe_results
 
 # ! data Information
-ly_model: 'hn_mp3d'
-ly_scale: 1
-vo_scale: 1
-image_resolution: [512, 1024]
+data.eval_version: "re-implementation"
+data.scene_category: "SINGLE_ROOM_SCENES"
+data.scene_category: "MULTI_ROOM_SCENES"
+
+data.scene: "i5noydFURQK"
+data.scene_version: "0"
+
+data.ly_model: 'hn_mp3d'
+data.ly_scale: 1
+data.vo_scale: 1
+data.image_resolution: [512, 1024]
 
 #! Plane  Estimation
 plane_estimation.min_inliers_ratio: 0.80
