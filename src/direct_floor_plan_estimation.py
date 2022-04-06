@@ -359,16 +359,16 @@ class DirectFloorPlanEstimation:
         if room_a is self.curr_room or room_b is self.curr_room:
             self.curr_room = new_room
 
-    def compute_room_shape_all(self, plot=True):
+    def compute_room_shape_all(self, plot=False):
         ''' Compute the room shape for all the rooms at once '''
         room_corners = []
         for room_idx, room in enumerate(tqdm(self.list_rooms, desc="Running iSPA...")):
             if room.status == ROOM_STATUS.FOR_DELETION:
                 continue
             try:
-                os.makedirs(os.path.join(self.dt.cfg.get("results_dir"), self.dt.scene_name), exist_ok=True)
                 if plot:
                     dump_dir = os.path.join(self.dt.cfg.get("results_dir"), self.dt.scene_name)
+                    os.makedirs(dump_dir, exist_ok=True)
                 else:
                     dump_dir = None
                 out_dict = room.compute_room_shape(

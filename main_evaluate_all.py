@@ -19,7 +19,8 @@ def evaluate_scene(room_corners_pred, room_corners_gt, points, axis_corners=None
     Evaluate the scene with room and corner metric
         corners_pred: list of predicted room corners
         corners_gt: list of GT room corners
-        gt_scale:
+        points: point cloud for background visualization
+        axis_corners: the two corners define the rotation for axis-alignment
     '''
     return_dict = {}
     images_dict = {}
@@ -51,7 +52,7 @@ def evaluate_scene(room_corners_pred, room_corners_gt, points, axis_corners=None
             grid_size=256,
             merge_corners=do_merge,
             merge_dist=0.5,
-            dist_threshold=10,
+            dist_threshold=10,      # 10 pixels
         )
         print(f'Corner recall: {num_match / size_gt}, precision: {num_match / size_pred}')
         key = 'corner_merge' if do_merge else 'corner_raw'
@@ -67,16 +68,18 @@ def evaluate_scene(room_corners_pred, room_corners_gt, points, axis_corners=None
     return return_dict, images_dict
 
 
-def dump_images(result_dict, save_dir):
+def dump_images(images_dict, save_dir):
     # Dump images
-    scene = result_dict['scene']
-    keys = sorted(list(result_dict.keys()))
+    scene = images_dict['scene']
+    keys = sorted(list(images_dict.keys()))
+    plt.imsave(os.path.join(save_dir, f'{scene}_room_id.png'), images_dict['room_id'])
+    plt.imsave(os.path.join(save_dir, f'{scene}_final_fp.png'), images_dict['final_fp'])
     keys.remove('scene')
-    keys.remove('patches')
-    plt.imsave(os.path.join(save_dir, f'{scene}_patches.png'), result_dict['patches'])
+    keys.remove('room_id')
+    keys.remove('final_fp')
     for key in keys:
-        plt.imsave(os.path.join(save_dir, f'{scene}_{key}_gt.png'), result_dict[key]['image_gt'])
-        plt.imsave(os.path.join(save_dir, f'{scene}_{key}_pred.png'), result_dict[key]['image_pred'])
+        plt.imsave(os.path.join(save_dir, f'{scene}_{key}_gt.png'), images_dict[key]['image_gt'])
+        plt.imsave(os.path.join(save_dir, f'{scene}_{key}_pred.png'), images_dict[key]['image_pred'])
 
 
 def dump_result(result_list, save_dir):
@@ -116,65 +119,43 @@ def dump_result(result_list, save_dir):
 
 def main(config_file, scene_list_file):
     cfg = read_config(config_file=config_file)
-    dump_dir = os.path.join(os.getenv("RESULTS_DIR"), cfg.get("version", "test_evaluation"))
+    dump_dir = os.path.join(os.getenv("RESULTS_DIR"), cfg.get("version", "test"))
     os.makedirs(dump_dir, exist_ok=True)
     scene_list = read_scene_list(scene_list_file)
     all_result = []
-    try:
-        for i, scene in enumerate(scene_list):
-            cfg['scene'], cfg['scene_version'] = scene.split('_')
+    for i, scene in enumerate(scene_list):
+        cfg['scene'], cfg['scene_version'] = scene.split('_')
 
-            dt = DataManager(cfg)
-            fpe = DirectFloorPlanEstimation(dt)
-            list_ly = dt.get_list_ly(cam_ref=CAM_REF.WC_SO3)
+        dt = DataManager(cfg)
+        fpe = DirectFloorPlanEstimation(dt)
+        list_ly = dt.get_list_ly(cam_ref=CAM_REF.WC_SO3)
 
-            for ly in list_ly:
-                fpe.estimate(ly)
+        for ly in list_ly:
+            fpe.estimate(ly)
 
-            fpe.global_ocg_patch.update_bins()
-            fpe.global_ocg_patch.update_ocg_map()
-            points_gt = fpe.dt.pcl_gt      # (3, N)
-            debug_image1 = plot_planes_rooms_patches(fpe, points_gt)
-            # plot_all_planes(fpe)
+        fpe.global_ocg_patch.update_bins()
+        fpe.global_ocg_patch.update_ocg_map()
+        points_gt = fpe.dt.pcl_gt      # (3, N)
 
-            # list_pl = flatten_lists_of_lists([ly.list_pl for ly in list_ly if ly.list_pl.__len__() > 0])
-            # plot_color_plc(np.hstack([ly.boundary for ly in list_pl]).T)
+        room_corner_list = fpe.compute_room_shape_all()
+        image_room_id = plot_all_rooms_by_patches(fpe)
+        image_final_fp = plot_floor_plan(room_corner_list, fpe.global_ocg_patch)
+        room_corner_list = [x.T for x in room_corner_list]  # Make it (N, 2)
+        result_dict, images_dict = evaluate_scene(
+            room_corner_list,
+            fpe.dt.room_corners,
+            points_gt,
+            axis_corners=fpe.dt.axis_corners
+        )
+        result_dict['scene'] = scene
+        images_dict['scene'] = scene
+        images_dict['room_id'] = image_room_id
+        images_dict['final_fp'] = image_final_fp
 
-            # plot_floor_plan(room_corner_list, fpe.global_ocg_patch, points_gt=points_gt)
-
-            room_corner_list = fpe.compute_room_shape_all()
-            debug_image2 = plot_planes_rooms_patches(fpe, points_gt, room_corner_list=room_corner_list, draw_plane=False)
-            room_corner_list = [x.T for x in room_corner_list]  # Make it (N, 2)
-            result_dict, images_dict = evaluate_scene(
-                room_corner_list,
-                fpe.dt.room_corners,
-                points_gt,
-                axis_corners=fpe.dt.axis_corners
-            )
-            result_dict['scene'] = scene
-            images_dict['scene'] = scene
-            images_dict['patches'] = plot_all_rooms_by_patches(fpe)
-            all_result.append(result_dict)
-
-            plt.figure("Debug floor plan plot")
-            plt.subplot(211)
-            plt.imshow(debug_image1)
-            plt.subplot(212)
-            plt.imshow(debug_image2)
-            plt.savefig(os.path.join(dump_dir, scene, 'deubug.png'))
-            plt.draw()
-            plt.waitforbuttonpress(1)
-            dump_images(images_dict, dump_dir)
-            dump_result(all_result, dump_dir)
-
-    except Exception as e:
-        # Dump result before raising the error
+        # Saving the results
+        dump_images(images_dict, dump_dir)
+        all_result.append(result_dict)
         dump_result(all_result, dump_dir)
-        raise e
-
-    print('Saving the result')
-    dump_result(all_result, dump_dir)
-    print('done')
 
 
 if __name__ == '__main__':

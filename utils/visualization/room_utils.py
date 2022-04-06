@@ -49,17 +49,9 @@ def plot_all_rooms_by_patches(fpe, only_save=False):
         global_map[mask, 2] = ocg_map[mask]
 
     global_map = hsv2rgb(global_map)
-    plt.figure("plot_all_rooms_by_patches")
-    plt.clf()
-    plt.title(f"{fpe.dt.scene_name}")
-    plt.imshow(global_map)
-
     # if only_save:
     #     plt.savefig(os.path.join(fpe.dt.cfg.get("results_dir"), f"{fpe.dt.scene_name}.jpg"))
     #     return
-
-    plt.draw()
-    plt.waitforbuttonpress(0.1)
     return global_map
 
 
@@ -137,13 +129,17 @@ def plot_all_planes(fpe, axis_align=True):
     plt.show()
 
 
-def plot_floor_plan(room_list, ocg, points_gt=None, planes=None):
+def plot_floor_plan(room_list, ocg, grid_size=512, points_gt=None, planes=None):
     '''
         room_list: list of room_corners with shape (2, N)
         ocg: OCGPatches objects for mapping 3D into 2D space
     '''
 
     height, width = ocg.get_shape()
+    if grid_size is not None:
+        ocg = copy.deepcopy(ocg)
+        ocg.resize(grid_size / max(height, width))
+        height, width = ocg.get_shape()
     image = np.zeros((height, width, 3), dtype=np.uint8)
     image.fill(255)
     if points_gt is not None:
@@ -172,14 +168,10 @@ def plot_floor_plan(room_list, ocg, points_gt=None, planes=None):
         for i in range(N):
             u1, v1 = room_corners[:, i]
             u2, v2 = room_corners[:, (i+1) % N]
-            cv2.line(image, (u1, v1), (u2, v2), color, 1)
-            cv2.circle(image, (u1, v1), 1, color, -1)
-            cv2.circle(image, (u2, v2), 1, color, -1)
-    plt.figure("floor plan result")
-    plt.clf()
-    plt.imshow(image)
-    plt.draw()
-    plt.waitforbuttonpress(0.1)
+            cv2.line(image, (u1, v1), (u2, v2), color, 3)
+            cv2.circle(image, (u1, v1), 5, color, -1)
+            cv2.circle(image, (u2, v2), 5, color, -1)
+    return image
 
 
 def plot_planes_rooms_patches(fpe, points_gt=None, room_corner_list=None, draw_plane=True):
