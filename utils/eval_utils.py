@@ -320,12 +320,13 @@ def evaluate_corners_pr(
     points_gt, axis_corners,
     grid_size=256,
     merge_corners=False,
-    merge_dist=5,
+    merge_dist=0.5,
     dist_threshold=10,
 ):
     '''
         Evaluate the corner in the FloorNet and Floor-SP way.
         It will calculate precision and recall for corners on a grid space.
+        The corners that are too close in real-world distance are merged so that it follows the shared-corners designed in FloorNet.
         NOTE: This will have problem when scene is really big with dense corner.
         Parameters:
             corners_pred: Estimated corners (N, 2)
@@ -334,7 +335,7 @@ def evaluate_corners_pr(
             axis_corners: Two corners defining an edge that need to be aligned to x-axis (2, 2)
             grid_size: The size of the 2D occ grid in pixels
             merge_corners: Boolean, defines whether merge corners that are too close
-            merge_dist: The distance for merging in pixels
+            merge_dist: The distance for merging (meter)
             dist_threshold: the threshold for computing matching in pixels
         Return:
             num_match: Number of matches
@@ -348,7 +349,7 @@ def evaluate_corners_pr(
     points = aligment.align_corners(points)
     if merge_corners:
         corners_gt = merge_neighbor_corners(corners_gt, merge_dist)
-    corners_gt = aligment.align_corners(corners_gt)
+    corners_gt = aligment.align_corners(corners_gt)     # This will map the corner coordinates into 0-1
     # Map gt_corners to grid
     size = np.array([grid_size, grid_size])
     corners_gt = np.round(corners_gt * size).astype(np.int32)
