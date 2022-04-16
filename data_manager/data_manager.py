@@ -127,7 +127,7 @@ class DataManager:
         kf_per_room = []
         masked_room_corners = []
         for corners in room_corners:
-            cr = np.vstack((corners, corners[-1, :]))
+            cr = np.vstack((corners, corners[0, :]))
             mask = points_in_poly(poses_gt_xyz[:, [0, 2]], cr)
             if np.sum(mask) == 0:
                 continue
@@ -247,7 +247,7 @@ class DataManager:
             plt.plot(vis[:, 0], vis[:, 1])
             
             # ! plotting KF poses
-            kf_poses = np.vstack([self.poses_gt[self.list_kf.index(i) - 1][(0, 2), 3] for i in list_kf])
+            kf_poses = np.vstack([self.poses_gt[self.list_kf.index(i)][(0, 2), 3] for i in list_kf])
                 # ! Plotting rooms
             plt.scatter(kf_poses[:, 0], kf_poses[:, 1])
         

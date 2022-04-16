@@ -15,12 +15,15 @@ from utils.io import read_csv_file, read_scene_list
 import yaml
 
 
-def main(config_file, scene_list_file):
+def compute_metadata(config_file, scene_list_file):
+    """
+    Computes the metadata for the scene listed in @scene_list_file using the configuration file @config_file 
+    """
+    
     cfg = read_config(config_file=config_file)
     scene_list = read_csv_file(scene_list_file)
     for scene in scene_list:
-        # if "Z6MFQCViBuw" not in scene:
-        #     continue
+     
         # ! Overrite data.* values using scene_list (iter)
         if scene.split('/').__len__() > 1:
             cfg['data.scene_category'], cfg['data.scene'], cfg['data.scene_version'] = scene.split('/')
@@ -34,6 +37,7 @@ def main(config_file, scene_list_file):
 
         metadata_dir = os.path.join(dt.mp3d_fpe_scene_dir, "metadata")
         os.makedirs(metadata_dir, exist_ok=True)
+       
         # ! Saving GT Room data
         dt.save_gt_rooms(metadata_dir)
         
@@ -51,4 +55,4 @@ if __name__ == '__main__':
     # TODO read from passed args
     config_file = "./config/config.yaml"
     scene_list_file = './data/all_scenes_list.csv'
-    main(config_file, scene_list_file)
+    compute_metadata(config_file, scene_list_file)
