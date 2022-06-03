@@ -117,9 +117,10 @@ def dump_result(result_list, save_dir):
         f.write('\n')
 
 
-def main(config_file, scene_list_file):
+def main(config_file, scene_list_file, output_dir):
     cfg = read_config(config_file=config_file)
-    dump_dir = os.path.join(os.getenv("RESULTS_DIR"), cfg.get("version", "test"))
+
+    dump_dir = output_dir
     os.makedirs(dump_dir, exist_ok=True)
     scene_list = read_scene_list(scene_list_file)
     all_result = []
@@ -162,4 +163,5 @@ if __name__ == '__main__':
     # TODO read from passed args
     config_file = "./config/config.yaml"
     scene_list_file = './data/scene_list_50.txt'
-    main(config_file, scene_list_file)
+    output_dir = './test'
+    main(config_file, scene_list_file, output_dir)
