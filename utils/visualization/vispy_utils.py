@@ -7,7 +7,6 @@ import vispy
 from vispy import visuals, scene
 import sys
 from utils.image_utils import get_color_list
-from zmq import DEALER
 
 
 def setting_viewer(return_canvas=False, main_axis=True, bgcolor='black'):

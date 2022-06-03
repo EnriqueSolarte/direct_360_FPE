@@ -42,8 +42,7 @@ class DataManager:
             )
             self.mp3d_fpe_scene_vo_dir = glob.glob(os.path.join(self.mp3d_fpe_scene_dir, 'vo*'))[0]
         except:
-            print(f"ERROR AT READING SCENE --> {self.mp3d_fpe_scene_dir}")
-            raise ValueError("Data_manager couldn't access to the data..")
+            raise ValueError(f"ERROR AT READING SCENE --> {self.mp3d_fpe_scene_dir}")
 
     def load_data(self):
         """
