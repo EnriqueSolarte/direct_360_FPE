@@ -50,7 +50,7 @@ class DirectFloorPlanEstimation:
         self.is_initialized = True
 
         for kfs in self.dt.list_kf_per_room:
-            print(f"Running: {self.dt.scene_name} - eval-version:{self.dt.cfg['eval_version']}")
+            print(f"Running: {self.dt.scene_name}")
 
             list_ly_per_room = [ly for ly in list_ly
                                 if ly.idx in kfs

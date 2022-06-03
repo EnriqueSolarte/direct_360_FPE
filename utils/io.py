@@ -120,4 +120,4 @@ def read_ply(fn):
 
 def read_scene_list(fn):
     with open(fn, 'r') as f:
-        return sorted(f.read().strip().split('\n'))
+        return f.read().strip().split('\n')
