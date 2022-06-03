@@ -4,7 +4,7 @@ path.results_dir: /media/NFS/kike/MP3D_360_FPE/MP3D_360_FPE/fpe_results
 # ! data Information
 data.eval_version: "release"
 data.scene_category: "SINGLE_ROOM_SCENES"
-# data.scene_category: "MULTI_ROOM_SCENES"
+data.scene_category: "MULTI_ROOM_SCENES"
 
 data.scene: "2t7WUuJeko7"
 data.scene_version: "0"

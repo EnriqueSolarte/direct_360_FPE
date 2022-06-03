@@ -17,11 +17,11 @@ from utils.eval_utils import evaluate_scene, dump_images, dump_result
 
 def main(config_file, scene_list_file, output_dir):
     cfg = read_config(config_file=config_file)
-    
+
     scene_list = read_scene_list(scene_list_file)
     all_result = []
     for i, scene in enumerate(scene_list):
-        cfg['scene'], cfg['scene_version'] = scene.split('_')
+        cfg['data.scene'], cfg['data.scene_version'] = scene.split('_')
 
         dt = DataManager(cfg)
         fpe = DirectFloorPlanEstimation(dt)
@@ -49,30 +49,27 @@ def main(config_file, scene_list_file, output_dir):
         images_dict['room_id'] = image_room_id
         images_dict['final_fp'] = image_final_fp
 
-        all_result.append(result_dict)        
-        
         # Saving the results
-        results_dir = os.path.join(output_dir, f"{cfg['data.scene']}_{cfg['data.scene_version']}")
+        results_dir = os.path.join(output_dir, f"{scene}")
         os.makedirs(results_dir, exist_ok=True)
-        
+
         # GT data for references
         dt.save_gt_rooms(results_dir)
-        
+
         # Estimated VO-SCALE and density 2d function
         fpe.scale_recover.save_estimation(results_dir)
-        
+
         #  Estimated results
         dump_images(images_dict, results_dir)
-        
+
         # writing results
+        all_result.append(result_dict)
         dump_result(all_result, output_dir)
-    
-    
 
 
 if __name__ == '__main__':
     # TODO read from passed args
     config_file = "./config/config.yaml"
-    scene_list_file = './data/scene_list_50.txt'
-    output_dir = './test'
+    scene_list_file = './data/scene_list_50_multi_room.txt'
+    output_dir = './test/eval_all'
     main(config_file, scene_list_file, output_dir)
