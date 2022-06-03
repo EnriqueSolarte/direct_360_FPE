@@ -15,7 +15,7 @@ from utils.io import read_csv_file, read_scene_list
 import yaml
 
 
-def compute_metadata(config_file, scene_list_file):
+def compute_metadata(config_file, scene_list_file, output_dir):
     """
     Computes the metadata for the scene listed in @scene_list_file using the configuration file @config_file 
     """
@@ -35,7 +35,7 @@ def compute_metadata(config_file, scene_list_file):
         # ! Set the list_ly into dt class
         dt.get_list_ly(cam_ref=CAM_REF.WC_SO3)
 
-        metadata_dir = os.path.join(dt.mp3d_fpe_scene_dir, "metadata")
+        metadata_dir = os.path.join(output_dir, "metadata")
         os.makedirs(metadata_dir, exist_ok=True)
        
         # ! Saving GT Room data
@@ -46,13 +46,11 @@ def compute_metadata(config_file, scene_list_file):
 
         # ! Saving VO-Scale recovery
         fpe.scale_recover.save_estimation(metadata_dir)
-        # plt.show()
-        
-        print("done")
 
 
 if __name__ == '__main__':
     # TODO read from passed args
     config_file = "./config/config.yaml"
     scene_list_file = './data/all_scenes_list.csv'
-    compute_metadata(config_file, scene_list_file)
+    output_dir = "./test/metadata"
+    compute_metadata(config_file, scene_list_file, output_dir)
