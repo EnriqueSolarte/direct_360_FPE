@@ -35,7 +35,7 @@ def compute_metadata(config_file, scene_list_file, output_dir):
         # ! Set the list_ly into dt class
         dt.get_list_ly(cam_ref=CAM_REF.WC_SO3)
 
-        metadata_dir = os.path.join(output_dir, "metadata")
+        metadata_dir = os.path.join(output_dir, f"{scene}")
         os.makedirs(metadata_dir, exist_ok=True)
        
         # ! Saving GT Room data
