@@ -1,2 +1,5 @@
 *.pyc
 *__pycache__/
+*test/ 
+.vscode/
+*.code-workspace
