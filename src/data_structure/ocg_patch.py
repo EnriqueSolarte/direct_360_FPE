@@ -1,9 +1,11 @@
+from unittest.mock import patch
 import numpy as np
 import cv2
 from skimage.transform import resize
 from utils.geometry_utils import extend_array_to_homogeneous
 from utils.ocg_utils import compute_uv_bins, project_xyz_to_uv
 from src.data_structure import layout
+from scipy import stats
 
 
 class OCGPatches:
@@ -117,7 +119,7 @@ class OCGPatches:
         self.v_bins = np.mgrid[min_points[1]:max_points[1]+self.grid_size: self.grid_size]
         return self.u_bins, self.v_bins
 
-    def update_ocg_map(self, binary_map=False):
+    def update_ocg_map(self, binary_map=True):
         """
         Updates the OCG map by aggregating layers of registered Patches (layers, H, W)
         """
@@ -137,13 +139,37 @@ class OCGPatches:
             self.ocg_map[self.ocg_map > self.dt.cfg.get("room_id.ocg_threshold", 0.5)] = 1
             self.ocg_map = self.ocg_map.astype(np.int)
 
+    def patch_size_weighting(self):
+        """
+        Creates a weighting vector for every patch based on the size of the closest neighboor patches.
+        """
+        ly_sigam_ratio = [p.layout.sigma_ratio for p in self.list_patches]
+        weights = [np.exp(-np.abs(p-np.median(ly_sigam_ratio))) for p in ly_sigam_ratio]
+        return weights
+
+    def gaussian_weighting(self):
+        """
+        Creates a corresponded weighted values for each registered self.list_patch using a gaussian function 
+        centered at the median index.
+        """
+        med_idx = self.list_patches.__len__() // 2
+        weights = stats.norm.pdf(
+            range(self.list_patches.__len__()),
+            med_idx,
+            self.dt.cfg["room_id.temporal_weighting_sigma"]
+        )
+        return weights/stats.norm.pdf(med_idx, med_idx, self.dt.cfg["room_id.temporal_weighting_sigma"])
+
     def update_ocg_map2(self):
         """
         Updates the OCG map by aggregating Patches using a temporal weight constraint
         """
         H, W = self.get_shape()
         self.ocg_map = np.zeros((H, W))
-        temporal_weight = np.linspace(1, 0, self.list_patches.__len__())
+        # temporal_weight = np.linspace(1, 0, self.list_patches.__len__())
+        temporal_weight = self.gaussian_weighting()
+        # temporal_weight = self.patch_size_weighting()
+
         for idx, patch in enumerate(self.list_patches):
             h, w = patch.H, patch.W
             uv = project_xyz_to_uv(
@@ -152,8 +178,17 @@ class OCGPatches:
                 v_bins=self.v_bins
             ).squeeze()
 
-            self.ocg_map[uv[1]:uv[1]+h, uv[0]:uv[0]+w] += patch.ocg_map * temporal_weight[idx]
-        # self.ocg_map = self.ocg_map/self.ocg_map.max()
+            if self.dt.cfg.get("room_id.temporal_weighting", True):
+                self.ocg_map[uv[1]:uv[1]+h, uv[0]:uv[0]+w] += patch.ocg_map * temporal_weight[idx]
+            else:
+                self.ocg_map[uv[1]:uv[1]+h, uv[0]:uv[0]+w] += patch.ocg_map
+
+            # # ! Adding non-isotropic Normalization
+            # if self.dt.cfg.get("room_id.non_isotropic_normalization", False):
+            #     self.ocg_map = self.ocg_map/self.ocg_map.max()
+
+        self.ocg_map = self.ocg_map/self.ocg_map.max()
+        # TODO: combine/ add update_ocg_map() as binary map option
 
     def add_patch(self, patch):
         """
@@ -165,24 +200,17 @@ class OCGPatches:
     def get_shape(self):
         return (self.v_bins.size-1, self.u_bins.size-1)
 
-    def get_mask(self):
-        ocg_map = self.ocg_map
-        ocg_map = ocg_map / np.max(ocg_map)
-        mask = ocg_map > self.dt.cfg.get("room_id.ocg_threshold", 0.5)
-        return mask
-
     def resize(self, scale):
+        # NOTE: This resize function only effects "bins" and "ocg_map".
+        # This will NOT maintain the correctness of instances under list_patches
         v_bins = self.v_bins
         u_bins = self.u_bins
         v_bins = self.resize_bins(self.v_bins, scale)
         u_bins = self.resize_bins(self.u_bins, scale)
 
         height, width = self.get_shape()
-        print(f'Origin size: {height} {width}')
-
         height = round(height * scale)
         width = round(width * scale)
-        print(f'After resize size: {height} {width}')
 
         self.v_bins = v_bins
         self.u_bins = u_bins

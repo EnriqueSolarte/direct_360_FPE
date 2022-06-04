@@ -1,66 +1,11 @@
-import sys
 import os
 import glob
-import json
+import cv2
 import numpy as np
-import open3d as o3d
-from plyfile import PlyData, PlyElement
-from pyquaternion import Quaternion
-from skimage.measure import points_in_poly
-
-
-def read_json_label(fn):
-    with open(fn, 'r') as f:
-        d = json.load(f)
-        room_list = d['room_corners']
-        room_corners = []
-        for corners in room_list:
-            corners = np.asarray([[float(x[0]), float(x[1])] for x in corners])
-            room_corners.append(corners)
-        axis_corners = d['axis_corners']
-        axis_corners = np.asarray([[float(x[0]), float(x[1])]
-                                   for x in axis_corners])
-    return room_corners, axis_corners
-
-
-def read_ply(fn):
-    plydata = PlyData.read(fn)
-    v = np.array([list(x) for x in plydata.elements[0]])
-    points = np.ascontiguousarray(v[:, :3])
-    points[:, 0:3] = points[:, [0, 2, 1]]
-    colors = np.ascontiguousarray(v[:, 3:6], dtype=np.float32) / 255
-    return np.concatenate((points, colors), axis=1)
-
-
-def write_ply(points, output_path):
-    dtype = [('x', 'f4'), ('y', 'f4'), ('z', 'f4'), ('red', 'u1'),
-             ('green', 'u1'), ('blue', 'u1')]
-    dtype.extend([('nx', '<f4'), ('ny', '<f4'),
-                  ('nz', '<f4')]) if points.shape[1] == 9 else None
-    if (points[:, 3:6] <= 1).all():
-        points[:, 3:6] = points[:, 3:6] * 255
-    vertex = np.array([tuple(x) for x in points], dtype=dtype)
-    vertex_el = PlyElement.describe(vertex, 'vertex')
-    PlyData([vertex_el]).write(output_path)
-
-
-def read_floorsp_pred(fn):
-    x = np.load(fn, allow_pickle=True).item()['vectorized_preds']
-    return [[corner['corner'][0], corner['corner'][1]] for corner in x]
-
-
-def read_scene_list(fn):
-    with open(fn, 'r') as f:
-        return sorted(f.read().strip().split('\n'))
-
-
-def estimate_normals(points):
-    xyz = points[:, :3]
-    pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(xyz)
-    pcd.estimate_normals()
-    normals = pcd.normals
-    return np.concatenate((points, normals), axis=1)
+from skimage import measure
+from utils.io import read_trajectory
+from utils.metric import calc_corners_pr, calc_polygon_iou
+import matplotlib.pyplot as plt
 
 
 def rotate_by_axis_corners(points, axis_corners):
@@ -80,39 +25,107 @@ def rotate_by_axis_corners(points, axis_corners):
     return points
 
 
-def merge_neighbor_corners(corners, dist_threshold):
+def evaluate_scene(room_corners_pred, room_corners_gt, points, axis_corners=None):
     '''
-        Naively merge all corners by DFS
-        corners: shape (N, 2)
-        dist_threshold: float
-
-        return: merged corners with shape (M, 2)
+    Evaluate the scene with room and corner metric
+        corners_pred: list of predicted room corners
+        corners_gt: list of GT room corners
+        points: point cloud for background visualization
+        axis_corners: the two corners define the rotation for axis-alignment
     '''
-    dist_matrix = np.expand_dims(corners, axis=1) - np.expand_dims(
-        corners, axis=0)  # N, N, 2
-    dist_matrix = np.sqrt(np.sum(np.power(dist_matrix, 2), axis=-1))  # N, N
-    mask = dist_matrix < dist_threshold
+    return_dict = {}
+    images_dict = {}
+    for iou_threshold in [0.3, 0.5, 0.7]:
+        num_match, size_pred, size_gt, image_pred, image_gt = evaluate_rooms_pr(
+            room_corners_pred, room_corners_gt,
+            points, axis_corners,
+            grid_size=512,
+            iou_threshold=iou_threshold,
+            room_name_list=None,
+        )
+        print(f'Room@{iou_threshold} recall: {num_match / size_gt}, precision: {num_match / size_pred}')
+        return_dict[f'room@{iou_threshold}'] = dict(
+            num_match=num_match,
+            size_pred=size_pred,
+            size_gt=size_gt,
+        )
+        images_dict[f'room@{iou_threshold}'] = dict(
+            image_pred=image_pred,
+            image_gt=image_gt,
+        )
 
-    def dfs(i, graph, used_node):
-        collected = set()
-        used_node[i] = True
-        collected.add(i)
+    corners_pred = np.concatenate(room_corners_pred, axis=0)
+    corners_gt = np.concatenate(room_corners_gt, axis=0)
+    for do_merge in [True, False]:
+        num_match, size_pred, size_gt, image_pred, image_gt = evaluate_corners_pr(
+            corners_pred, corners_gt,
+            points, axis_corners,
+            grid_size=256,
+            merge_corners=do_merge,
+            merge_dist=0.5,
+            dist_threshold=10,      # 10 pixels
+        )
+        print(f'Corner recall: {num_match / size_gt}, precision: {num_match / size_pred}')
+        key = 'corner_merge' if do_merge else 'corner_raw'
+        return_dict[key] = dict(
+            num_match=num_match,
+            size_pred=size_pred,
+            size_gt=size_gt,
+        )
+        images_dict[key] = dict(
+            image_pred=image_pred,
+            image_gt=image_gt,
+        )
+    return return_dict, images_dict
 
-        for j in range(graph.shape[1]):
-            if graph[i, j] and not used_node[j]:
-                collected = collected | dfs(j, graph, used_node)
-        return collected
 
-    used_node = np.zeros((corners.shape[0], ))
-    merged_corners = []
-    for i in range(corners.shape[0]):
-        if not used_node[i]:
-            corners_ids = list(dfs(i, mask, used_node))
-            merged_corners.append(np.mean(corners[corners_ids, :], axis=0))
+def dump_images(images_dict, save_dir):
+    # Dump images
+    scene = images_dict['scene']
+    keys = sorted(list(images_dict.keys()))
+    plt.imsave(os.path.join(save_dir, f'{scene}_room_id.png'), images_dict['room_id'])
+    plt.imsave(os.path.join(save_dir, f'{scene}_final_fp.png'), images_dict['final_fp'])
+    keys.remove('scene')
+    keys.remove('room_id')
+    keys.remove('final_fp')
+    for key in keys:
+        plt.imsave(os.path.join(save_dir, f'{scene}_{key}_gt.png'), images_dict[key]['image_gt'])
+        plt.imsave(os.path.join(save_dir, f'{scene}_{key}_pred.png'), images_dict[key]['image_pred'])
 
-    merged_corners = np.stack(merged_corners, axis=0)
-    return merged_corners
 
+def dump_result(result_list, save_dir):
+    # Dump result to a csv file
+    with open(os.path.join(save_dir, '360_dfpe_result.csv'), 'w') as f:
+        keys = sorted(list(result_list[0].keys()))
+        keys.remove('scene')
+        # Write header
+        f.write('scene')
+        for key in keys:
+            f.write(f',{key}_recall,{key}_prec')
+        f.write('\n')
+
+        for result_dict in result_list:
+            # Write each row (repective to the result of a scene)
+            scene = result_dict['scene']
+            f.write(f'{scene}')
+            for key in keys:
+                recall = result_dict[key]['num_match'] / result_dict[key]['size_gt']
+                prec = result_dict[key]['num_match'] / result_dict[key]['size_pred']
+                f.write(f',{recall:.4f},{prec:.4f}')
+            f.write('\n')
+
+        # Compute average result for last row
+        f.write('mean')
+        for key in keys:
+            all_recall = []
+            all_prec = []
+            for result_dict in result_list:
+                recall = result_dict[key]['num_match'] / result_dict[key]['size_gt']
+                prec = result_dict[key]['num_match'] / result_dict[key]['size_pred']
+                all_recall.append(recall)
+                all_prec.append(prec)
+            f.write(f',{np.mean(all_recall):.4f},{np.mean(all_prec):.4f}')
+        f.write('\n')
 
 class FloorNetCornerAlignment:
     '''
@@ -162,76 +175,300 @@ class FloorNetCornerAlignment:
         return corners
 
 
-def mytransform44(l, seq="xyzw"):
-    """
-    Generate a 4x4 homogeneous transformation matrix from a 3D point and unit quaternion.
+def merge_neighbor_corners(corners, dist_threshold):
+    '''
+        Naively merge all corners by DFS
+        corners: shape (N, 2)
+        dist_threshold: float
 
-    Input:
-    l -- tuple consisting of (stamp,tx,ty,tz,qx,qy,qz,qw) where
-         (tx,ty,tz) is the 3D position and (qx,qy,qz,qw) is the unit quaternion.
+        return: merged corners with shape (M, 2)
+    '''
+    dist_matrix = np.expand_dims(corners, axis=1) - np.expand_dims(
+        corners, axis=0)  # N, N, 2
+    dist_matrix = np.sqrt(np.sum(np.power(dist_matrix, 2), axis=-1))  # N, N
+    mask = dist_matrix < dist_threshold
 
-    Output:
-    matrix -- 4x4 homogeneous transformation matrix
-    """
-    t = l[1:4]
-    q = np.array(l[4:8], dtype=np.float64, copy=True)
-    if seq == 'wxyz':
-        if q[0] < 0:
-            q *= -1
-        q = Quaternion(w=q[0], x=q[1], y=q[2], z=q[3])
+    def dfs(i, graph, used_node):
+        collected = set()
+        used_node[i] = True
+        collected.add(i)
+
+        for j in range(graph.shape[1]):
+            if graph[i, j] and not used_node[j]:
+                collected = collected | dfs(j, graph, used_node)
+        return collected
+
+    used_node = np.zeros((corners.shape[0], ))
+    merged_corners = []
+    for i in range(corners.shape[0]):
+        if not used_node[i]:
+            corners_ids = list(dfs(i, mask, used_node))
+            merged_corners.append(np.mean(corners[corners_ids, :], axis=0))
+
+    merged_corners = np.stack(merged_corners, axis=0)
+    return merged_corners
+
+
+def compute_grid_map(points, height=256, width=256, scale_fractor=1):
+    size = np.array([width, height])
+    coords = np.clip(np.round(points[:, :2] * size), 0,
+                     size - 1).astype(np.int32)
+    coords = coords[:, 0] * width + coords[:, 1]
+
+    density = np.bincount(coords, minlength=height * width)
+    density = density.reshape(height, width) / scale_fractor
+    return density
+
+
+def draw_corners(background, corners, color, r=2):
+    '''
+        background: [height, width, 3]
+        corners: [N, 2]
+        color: (r, g, b)
+        r: radius
+    '''
+    for i in range(corners.shape[0]):
+        x = int(round(corners[i, 0]))
+        y = int(round(corners[i, 1]))
+        background[x-r:x+r+1, y-r:y+r+1, :] = color
+    return background
+
+
+def add_opacity(image):
+    height, width = image.shape[:2]
+    alpha = np.zeros((height, width, 1), dtype=np.uint8)
+    alpha.fill(255)
+    image = np.concatenate([image, alpha], axis=-1)
+    return image
+
+
+def composite_rgba(background, input):
+    # Based on https://stackoverflow.com/questions/10781953/determine-rgba-colour-received-by-combining-two-colours
+    assert input.shape[:2] == background.shape[:2]
+    H, W = background.shape[:2]
+    input = input.astype(np.float32) / 255
+    background = background.astype(np.float32) / 255
+
+    if input.shape[2] == 4:
+        input_alpha = input[:, :, 3].reshape(H, W, 1)
     else:
-        if q[3] < 0:
-            q *= -1
-        q = Quaternion(
-            x=q[0],
-            y=q[1],
-            z=q[2],
-            w=q[3],
+        input_alpha = np.ones((H, W, 1), dtype=np.float32)
+
+    input_rgb = input[:, :, :3]
+    if background.shape[2] == 4:
+        bg_alpha = background[:, :, 3].reshape(H, W, 1)
+    else:
+        bg_alpha = np.ones((H, W, 1), dtype=np.float32)
+    bg_rgb = background[:, :, :3]
+
+    new_alpha = input_alpha + bg_alpha * (1 - input_alpha)
+    new_rgb = input_rgb * input_alpha + bg_rgb * bg_alpha * (1 - input_alpha)
+    new_rgb /= new_alpha
+    new_img = np.concatenate([new_rgb, new_alpha], axis=-1)
+
+    return np.round(new_img * 255).astype(np.uint8)
+
+
+def draw_room(background, corners, alignment=None, color=None, opacity=180):
+    height, width = background.shape[:2]
+    if background.shape[2] == 3:
+        # Add alpha channel
+        background = add_opacity(background)
+    room_map = np.zeros((height, width, 4), dtype=np.uint8)
+    if alignment is not None:
+        size = np.array([height, width])
+        corners = alignment.align_corners(corners) * size
+    mask = measure.grid_points_in_poly((height, width), corners)
+    if color is None:
+        color = np.array([255, 0, 0])       # Red
+    room_map[mask, :3] = color
+    room_map[mask, 3] = opacity
+
+    return composite_rgba(background, room_map)
+
+
+def evaluate_rooms_pr(
+    room_corners_pred,
+    room_corners_gt,
+    points_gt,
+    axis_corners,
+    grid_size=512,
+    room_name_list=None,
+    iou_threshold=0.5,
+):
+    '''
+        Evaluate the precision and recall for room IoU.
+        NOTE: Evaluating the room IoU does not need axis-alignment. The axis-alignment is only for visualization.
+        Parameters:
+            room_corners_pred: List of estimated room corners (N_i, 2)
+            room_corners_gt: List of GT room corners (M_i, 2)
+            points_gt: GT point cloud
+            axis_corners: two corners defining an edge that need to be aligned to x-axis (2, 2)
+            grid_size: The size of the 2D occ grid in pixels
+            iou_threshold: the threshold for computing matching for rooms
+            room_name_list: List of room name for visualization (the same size of room_corners_gt)
+        Returns:
+            num_match: Number of matches
+            size_pred: Total number of estimated rooms
+            size_gt: Total number of GT rooms
+            image_pred: visualization image result
+            image_gt: visualization image result
+    '''
+    gt_map_dict = {}
+    for gt_idx in range(len(room_corners_gt)):
+        # sample points in gt
+        for pred_idx in range(len(room_corners_pred)):
+
+            iou = calc_polygon_iou(
+                room_corners_gt[gt_idx],
+                room_corners_pred[pred_idx],
+                sample_size=512
+            )
+
+            if gt_idx in gt_map_dict:
+                if iou > gt_map_dict[gt_idx][1]:
+                    # Replace previous match with larger iou match
+                    gt_map_dict[gt_idx] = (pred_idx, iou)
+            else:
+                gt_map_dict[gt_idx] = (pred_idx, iou)
+
+    # num_match = len([iou for _, iou in gt_map_dict.values() if iou >= iou_threshold])
+    num_match = 0
+    pred_set = set()
+    for (pred_idx, iou) in gt_map_dict.values():
+        if iou >= iou_threshold and pred_idx not in pred_set:
+            pred_set.add(pred_idx)
+            num_match += 1
+
+    points = points_gt[:, [0, 2]]
+    alignment = FloorNetCornerAlignment(points, axis_corners)
+    points = alignment.align_corners(points)
+    density_map = compute_grid_map(points, height=grid_size, width=grid_size, scale_fractor=0.1)
+    density_map = np.stack([density_map, density_map, density_map], axis=-1)
+    density_map *= 5
+    density_map = np.clip(np.round(density_map), 0, 255).astype(np.uint8)
+    density_map = 255 - density_map
+
+    image_gt = density_map.copy()
+    image_pred = density_map.copy()
+    matched_pred_idxs = []
+
+    # The seed here make sure the visualization color will be the deterministic
+    np.random.seed(255)
+    for gt_idx in range(len(room_corners_gt)):
+        room_corners = room_corners_gt[gt_idx]
+        sample_color = np.random.choice(range(256), size=3)
+        image_gt = draw_room(
+            image_gt, room_corners,
+            alignment=alignment, color=sample_color
         )
-    trasnform = np.eye(4)
-    trasnform[0:3, 0:3] = q.rotation_matrix
-    trasnform[0:3, 3] = np.array(t)
 
-    return trasnform
+        if gt_idx in gt_map_dict and gt_map_dict[gt_idx][1] >= iou_threshold:
+            pred_idx = gt_map_dict[gt_idx][0]
+            room_corners = room_corners_pred[pred_idx]
+            image_pred = draw_room(
+                image_pred, room_corners,
+                alignment=alignment, color=sample_color
+            )
+
+            matched_pred_idxs.append(pred_idx)
+
+    np.random.seed(798)
+    for pred_idx in range(len(room_corners_pred)):
+        if pred_idx not in matched_pred_idxs:
+            room_corners = room_corners_pred[pred_idx]
+            sample_color = np.random.choice(range(256), size=3)
+            image_pred = draw_room(
+                image_pred, room_corners,
+                alignment=alignment, color=sample_color
+            )
+
+    # Draw room name on image_pred
+    if room_name_list is not None:
+        for pred_idx in range(len(room_corners_pred)):
+            corners = room_corners_pred[pred_idx]
+            size = np.array([grid_size, grid_size])
+            corners = alignment.align_corners(corners) * size
+            center = corners.mean(0).astype(int)
+
+            cv2.putText(
+                image_pred,
+                str(room_name_list[pred_idx]),
+                (center[1], center[0]),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                1, (0, 0, 0, 255), 1,
+                cv2.LINE_AA
+            )
+
+    # Draw room corners
+    for gt_idx in range(len(room_corners_gt)):
+        corners = room_corners_gt[gt_idx]
+        size = np.array([grid_size, grid_size])
+        corners = alignment.align_corners(corners) * size
+        image_gt = draw_corners(image_gt, corners, color=np.array([255, 20, 147, 255]))
+
+    for pred_idx in range(len(room_corners_pred)):
+        corners = room_corners_pred[pred_idx]
+        size = np.array([grid_size, grid_size])
+        corners = alignment.align_corners(corners) * size
+        image_pred = draw_corners(image_pred, corners, color=np.array([255, 20, 147, 255]))
+
+    size_pred = len(room_corners_pred)
+    size_gt = len(room_corners_gt)
+    return num_match, size_pred, size_gt, image_pred, image_gt
 
 
-def read_trajectory(filename, matrix=True, traj_gt_keys_sorted=[], seq="xyzw"):
-    """
-    Read a trajectory from a text file. 
-    
-    Input:
-    filename -- file to be read_datasets
-    matrix -- convert poses to 4x4 matrices
-    
-    Output:
-    dictionary of stamped 3D poses
-    """
-    file = open(filename)
-    data = file.read()
-    lines = data.replace(",", " ").replace("\t", " ").split("\n")
-    list = [[float(v.strip()) for v in line.split(" ") if v.strip() != ""]
-            for line in lines if len(line) > 0 and line[0] != "#"]
-    list_ok = []
-    for i, l in enumerate(list):
-        if l[4:8] == [0, 0, 0, 0]:
-            continue
-        isnan = False
-        for v in l:
-            if np.isnan(v):
-                isnan = True
-                break
-        if isnan:
-            sys.stderr.write(
-                'Warning: line {} of file {} has NaNs, skipping line\n'.format(
-                    i, filename))
-            continue
-        list_ok.append(l)
-    if matrix:
-        traj = dict([(l[0], mytransform44(l[0:], seq=seq)) for l in list_ok])
-    else:
-        traj = dict([(l[0], l[1:8]) for l in list_ok])
+def evaluate_corners_pr(
+    corners_pred, corners_gt,
+    points_gt, axis_corners,
+    grid_size=256,
+    merge_corners=False,
+    merge_dist=0.5,
+    dist_threshold=10,
+):
+    '''
+        Evaluate the corner in the FloorNet and Floor-SP way.
+        It will calculate precision and recall for corners on a grid space.
+        The corners that are too close in real-world distance are merged so that it follows the shared-corners designed in FloorNet.
+        NOTE: This will have problem when scene is really big with dense corner.
+        Parameters:
+            corners_pred: Estimated corners (N, 2)
+            corners_gt: GT corners (M, 2)
+            points_gt: GT point cloud
+            axis_corners: Two corners defining an edge that need to be aligned to x-axis (2, 2)
+            grid_size: The size of the 2D occ grid in pixels
+            merge_corners: Boolean, defines whether merge corners that are too close
+            merge_dist: The distance for merging (meter)
+            dist_threshold: the threshold for computing matching in pixels
+        Return:
+            num_match: Number of matches
+            size_pred: Total number of estimated corners
+            size_gt: Total number of GT corners
+            image_pred: visualization image result
+            image_gt: visualization image result
+    '''
+    points = points_gt[:, [0, 2]]
+    aligment = FloorNetCornerAlignment(points, axis_corners)
+    points = aligment.align_corners(points)
+    if merge_corners:
+        corners_gt = merge_neighbor_corners(corners_gt, merge_dist)
+    corners_gt = aligment.align_corners(corners_gt)     # This will map the corner coordinates into 0-1
+    # Map gt_corners to grid
+    size = np.array([grid_size, grid_size])
+    corners_gt = np.round(corners_gt * size).astype(np.int32)
+    density_map = compute_grid_map(points, height=grid_size, width=grid_size, scale_fractor=0.1)
+    density_map = np.stack([density_map, density_map, density_map], axis=-1)
+    density_map = np.clip(np.round(density_map), 0, 255).astype(np.uint8)
+    density_map = 255 - density_map
+    image_gt = draw_corners(density_map.copy(), corners_gt, np.array([255, 0, 0]))
 
-    return traj
+    if merge_corners:
+        corners_pred = merge_neighbor_corners(corners_pred, merge_dist)
+    corners_pred = aligment.align_corners(corners_pred)
+    corners_pred = np.round(corners_pred * size).astype(np.int32)
+    image_pred = draw_corners(density_map.copy(), corners_pred, np.array([0, 255, 0]))
+    num_match, size_pred, size_gt = calc_corners_pr(corners_pred, corners_gt, dist_threshold)
+    return num_match, size_pred, size_gt, image_pred, image_gt
 
 
 def make_unvisited_area(base_dir,
@@ -255,7 +492,7 @@ def make_unvisited_area(base_dir,
     masked_in_corners = []
     masked_out_corners = []
     for local_corners_gt in gt_corners:
-        mask = points_in_poly(all_cam_poses[:, (0, 2)], local_corners_gt)
+        mask = measure.points_in_poly(all_cam_poses[:, (0, 2)], local_corners_gt)
         if np.sum(mask) <= min_key_frames_per_room:
             masked_out_corners.append(local_corners_gt)
             continue

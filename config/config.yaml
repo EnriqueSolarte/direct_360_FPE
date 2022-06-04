@@ -1,29 +1,18 @@
-
-# ! Scene Information
-eval_version: "re-implementation"
-scene_category: "SINGLE_ROOM_SCENES"
-scene_category: "MULTI_ROOM_SCENES"
-
-scene: "i5noydFURQK"
-scene_version: "0"
-
-scene: "2t7WUuJeko7"
-scene_version: "0"
-
-scene: "i5noydFURQK"
-scene_version: "1"
-
-# scene: "Z6MFQCViBuw"
-# scene_version: "0"
-
-# scene: "PuKPg4mmafe"
-# scene_version: "0"
+path.mp3d_fpe_dir: /media/NFS/kike/MP3D_360_FPE/MP3D_360_FPE/
+path.results_dir: /media/NFS/kike/MP3D_360_FPE/MP3D_360_FPE/fpe_results
 
 # ! data Information
-ly_model: 'hn_mp3d'
-ly_scale: 1
-vo_scale: 1
-image_resolution: [512, 1024]
+data.eval_version: "release"
+data.scene_category: "SINGLE_ROOM_SCENES"
+data.scene_category: "MULTI_ROOM_SCENES"
+
+data.scene: "2t7WUuJeko7"
+data.scene_version: "0"
+
+data.ly_model: 'hn_mp3d'
+data.ly_scale: 1
+data.vo_scale: 1
+data.image_resolution: [512, 1024]
 
 #! Plane  Estimation
 plane_estimation.min_inliers_ratio: 0.80
@@ -46,8 +35,12 @@ theta_estimation.penalty: 0.5
 room_id.grid_size: 0.1
 room_id.grid_padding: 50
 room_id.ocg_threshold: 0.5
-room_id.clipped_ratio: 5
-room_id.iuo_overlapping_allowed: 0.3
+room_id.clipped_ratio: 6
+room_id.iou_overlapping_allowed: 0.5
+room_id.iou_overlapping_norm: "union" #"max" "min" "union"
+# room_id.non_isotropic_normalization: True
+room_id.temporal_weighting: False
+room_id.temporal_weighting_sigma: 1
 
 
 # ! Scale Recovering Parameters
@@ -66,9 +59,9 @@ scale_recover.apply_gt_scale: True
 
 
 room_shape_opt.valid_type: 'patch_boundary'
-room_shape_opt.ocg_threshold: 0.7
-room_shape_opt.spa_min_edge: 64
-room_shape_opt.spa_max_edge: 64
+room_shape_opt.ocg_threshold: 0.9
+room_shape_opt.spa_min_edge: 96
+room_shape_opt.spa_max_edge: 96
 room_shape_opt.grid_size_factor: 0.5
 room_shape_opt.min_edge_dist: 0.0
 # max_edge_dist: manhattan dist (pixel)
@@ -93,11 +86,6 @@ room_shape_opt.merge_corner_threshold: 0.002
 
 room_shape_opt.spa_refine_times: 2
 room_shape_opt.refine_box_size: 4     # pixel
-room_shape_opt.refine_sizes: [96, 96, 128, 128]
+# room_shape_opt.refine_sizes: [96, 96, 128, 128]
+room_shape_opt.refine_sizes: [128, 128, 128, 128]
 # refine_sizes: [108, 108, 144, 144]
-
-# Evaluation options
-evaluation.iou_threshold: 0.5
-evaluation.dist_threshold: 10
-evaluation.merge_corners: True    # corner metric
-evaluation.merge_dist: 0.5        # meter

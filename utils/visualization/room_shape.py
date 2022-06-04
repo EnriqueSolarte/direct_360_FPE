@@ -4,7 +4,7 @@ import numpy as np
 from utils.ocg_utils import get_line_pixels
 
 
-def plot_spa_info(
+def visualize_spa_info(
     spa,
     draw_plane=False,
     corners=None,
@@ -37,14 +37,10 @@ def plot_spa_info(
         line_u, line_v = get_line_pixels(break_line[0], break_line[1])
         image[line_v, line_u, :] = np.array([255, 0, 0])
 
-    plt.figure("spa info")
-    plt.clf()
-    plt.imshow(image)
-    plt.draw()
-    plt.waitforbuttonpress(0.1)
+    return image
 
 
-def vis_room_result(spa, corners_uv, start_uv=None, end_uv=None, draw_plane=False):
+def visualize_room_result(spa, corners_uv, start_uv=None, end_uv=None, draw_plane=False):
     ocg = spa.ocg
     H, W = ocg.get_shape()
     image = np.zeros((H, W, 3), dtype=np.uint8)
@@ -82,8 +78,8 @@ def vis_room_result(spa, corners_uv, start_uv=None, end_uv=None, draw_plane=Fals
 
 
 def plot_room_result(spa, corners_uv, start_uv=None, end_uv=None):
-    image_spa = vis_room_result(spa, corners_uv, start_uv, end_uv, draw_plane=False)
-    image_plane = vis_room_result(spa, corners_uv, start_uv, end_uv, draw_plane=True)
+    image_spa = visualize_room_result(spa, corners_uv, start_uv, end_uv, draw_plane=False)
+    image_plane = visualize_room_result(spa, corners_uv, start_uv, end_uv, draw_plane=True)
     plt.figure("Room shape result")
     plt.clf()
     plt.subplot(121)
