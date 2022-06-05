@@ -2,6 +2,9 @@
     "folders": [
         {
             "path": "."
+        },
+        {
+            "path": "../MP3D_360_FPE/MP3D_360_FPE"
         }
     ]
 }

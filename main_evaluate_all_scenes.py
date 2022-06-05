@@ -29,9 +29,10 @@ def main(config_file, scene_list_file, output_dir):
 
         for ly in list_ly:
             fpe.estimate(ly)
-
-        fpe.global_ocg_patch.update_bins()
-        fpe.global_ocg_patch.update_ocg_map()
+            
+        fpe.masking_ocg_map()
+        fpe.eval_room_overlapping()
+   
         points_gt = fpe.dt.pcl_gt      # (3, N)
 
         room_corner_list = fpe.compute_room_shape_all()
@@ -71,5 +72,5 @@ if __name__ == '__main__':
     # TODO read from passed args
     config_file = "./config/config.yaml"
     scene_list_file = './data/scene_list_50_multi_room.txt'
-    output_dir = './test/eval_all'
+    output_dir = './test/eval_all_2'
     main(config_file, scene_list_file, output_dir)

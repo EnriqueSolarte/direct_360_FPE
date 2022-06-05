@@ -13,7 +13,7 @@ from utils.visualization.room_utils import plot_floor_plan, plot_all_planes, plo
 from utils.eval_utils import evaluate_corners_pr, evaluate_rooms_pr
 from utils.io import read_scene_list
 from utils.eval_utils import evaluate_scene, dump_images, dump_result
-
+# from utils.visualization.plot_ocg_map 
 
 def main(config_file, output_dir):
     cfg = read_config(config_file=config_file)
@@ -24,9 +24,10 @@ def main(config_file, output_dir):
 
     for ly in list_ly:
         fpe.estimate(ly)
-
-    fpe.global_ocg_patch.update_bins()
-    fpe.global_ocg_patch.update_ocg_map()
+    
+    fpe.eval_room_overlapping()
+    fpe.masking_ocg_map()
+    
     points_gt = fpe.dt.pcl_gt      # (3, N)
 
     room_corner_list = fpe.compute_room_shape_all()

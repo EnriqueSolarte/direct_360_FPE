@@ -31,7 +31,8 @@ def main(config_file, scene_list_file, output_dir):
         fpe = DirectFloorPlanEstimation(dt)
 
         fpe.compute_non_sequential_fpe()
-
+        
+        fpe.masking_ocg_map()
         points_gt = fpe.dt.pcl_gt      # (3, N)
 
         room_corner_list = fpe.compute_room_shape_all()
