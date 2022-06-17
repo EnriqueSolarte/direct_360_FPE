@@ -1,8 +1,6 @@
 # 360-DFPE: Leveraging Monocular 360-Layouts for Direct Floor Plan Estimation
 
-This work was accepted to the [IEEE Robotics and Automation Letters RA-L](https://ieeexplore.ieee.org/document/9772341)" 
-
-
+This project was published at [IEEE Robotics and Automation Letters RA-L](https://ieeexplore.ieee.org/document/9772341)" 
 
 ### Introduction
 For a quick overview please vist our [website project](https://enriquesolarte.github.io/robust_360_8pa/) and watch our following video demo. For further questions, please contact us to enrique.solarte.pardo@gmail.com
@@ -26,12 +24,9 @@ This is the implementation of **360-DFPE** for sequential floor plan estimation 
 
 Using this **REPO** you can:
 
-*  Register multiple 360-images with estimated camera poses, assuming an unknown visual odometry scale and missed camera height. This Registration is accomplished by our proposed Scaler Recovery. See Sec III-C in our paper.
-*  Identify every room in the floor plan without using image features but layout geoemtries only. See Sec III-D.
-*  Estimated and optimze the room-geometries as set of minimum room corners. See Sec III-F.
-*  Excecute **360-DFPE** for single and multiple rooms scenes in a sequential and non-sequential manner. 
-*  Evaluates corner and room metrics for the floor plan estimates.
-
+*  Excecute **360-DFPE** for single and multiple room scenes in a sequential and non-sequential manner. 
+*  Register multiple 360-layouts with estimated camera poses, assuming an unknown visual odometry scale and missed camera height. For convenience, this registration can be executed isolated from the floor plan estimation pipeline.
+*  Evaluate corner and room metrics for floor plan estimation.
 
 ---
 ### Main Requirements 
@@ -45,7 +40,10 @@ Using this **REPO** you can:
 ---
 
 ### Dataset
-The dataset used in this project is our own collected **MP3D-FPE** dataset, which uses [MINOS](https://minosworld.github.io/) simulator with real-world [MP3D](https://niessner.github.io/Matterport/) data. We carefully simulate a handled-camera walking through different rooms and registering sequence of 360-images, from which we annotate floor plan labels. 
+The dataset used in this project is our own collected **MP3D-FPE** dataset, which simulates a handled-camera walking through different rooms scenes rendered by [MINOS](https://minosworld.github.io/) simulator with [MP3D](https://niessner.github.io/Matterport/) real-world data. Upon this collected data, we annotate floor plan labels, estimated camera poses uisng OpenVSLAM[4], and estimated layout for each key-frame by HorizonNet[3]. Our dataset offers 360-rgb-images, depth images, ground thruth camera poses, floor plan labels, and estimated layouts.  
+
+![](https://i.imgur.com/qd80tlW.gif)
+![](https://i.imgur.com/QxyEfdZ.gif)
 
 For convenience, we have prepared a light-set of scenes which can be downloaded by running ```download_mp3d_fpe.py```. For accessing to the whole dataset, please send us an email to enrique.solarte.pardo@gmail.com, or nthu.vslab@gmail.com.
 
@@ -53,7 +51,7 @@ For more details about our dataset, please see [MP3D-FPE dataset](mp3d_fpe_datas
 
 ### Settings
 
-For convience, we handle all the involved hyperameter in a yaml file stored at ```./config/config.yaml```. For practical purposes, we define a data manager class ```DataManager```, which handles the data in the MP3D-FPE dataset, i.e., ground-thrue information, estimated poses, rgb images, etc. The following is a typical initialization of our system:  
+We handle all the involved hyperameter in a yaml file stored at ```./config/config.yaml```. For practical purposes, we define a data manager class ```DataManager```, which handles the data in the MP3D-FPE dataset, i.e., ground-thrue information, estimated poses, rgb images, etc. The following is a typical initialization of our system:  
 
 ```py
 from config import read_config
