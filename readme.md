@@ -1,9 +1,9 @@
 # 360-DFPE: Leveraging Monocular 360-Layouts for Direct Floor Plan Estimation
 
-This project was published at [IEEE Robotics and Automation Letters RA-L](https://ieeexplore.ieee.org/document/9772341)" 
+This project was published at [IEEE Robotics and Automation Letters RA-L](https://ieeexplore.ieee.org/document/9772341) 
 
 ### Introduction
-For a quick overview please vist our [website project](https://enriquesolarte.github.io/robust_360_8pa/) and watch our following video demo. For further questions, please contact us to enrique.solarte.pardo@gmail.com
+For a quick overview please visit our [website project](https://enriquesolarte.github.io/360-dfpe/) or watch our video demo depicted below. For further questions, please contact us to enrique.solarte.pardo@gmail.com
 [![](https://i.imgur.com/7X3lGKH.png)](https://drive.google.com/file/d/1-ifw3MlV9aCktkXOX8P230gXqofl3QKc/view?usp=sharing)
 
 
@@ -11,9 +11,7 @@ For a quick overview please vist our [website project](https://enriquesolarte.gi
 ---
 ### News
 
-* **06/17/2022**: Code released 
-
-* **06/17/2022**: Pilot scenes released
+* **06/17/2022**: Code and pilot scene released 
 
 * *soon mp3d_fpe dataset release*
 ---
@@ -25,7 +23,7 @@ This is the implementation of **360-DFPE** for sequential floor plan estimation 
 Using this **REPO** you can:
 
 *  Excecute **360-DFPE** for single and multiple room scenes in a sequential and non-sequential manner. 
-*  Register multiple 360-layouts with estimated camera poses, assuming an unknown visual odometry scale and missed camera height. For convenience, this registration can be executed isolated from the floor plan estimation pipeline.
+*  Register multiple 360-layouts with estimated camera poses, assuming an unknown visual odometry scale and missed camera height. For convenience, this registration can be executed isolated from the floor plan estimation pipeline. see [Computing metadata](#computing-metadata)
 *  Evaluate corner and room metrics for floor plan estimation.
 
 ---
@@ -40,7 +38,7 @@ Using this **REPO** you can:
 ---
 
 ### Dataset
-The dataset used in this project is our own collected **MP3D-FPE** dataset, which simulates a handled-camera walking through different rooms scenes rendered by [MINOS](https://minosworld.github.io/) simulator with [MP3D](https://niessner.github.io/Matterport/) real-world data. Upon this collected data, we annotate floor plan labels, estimated camera poses uisng OpenVSLAM[4], and estimated layout for each key-frame by HorizonNet[3]. Our dataset offers 360-rgb-images, depth images, ground truth camera poses, floor plan labels, and estimated layouts.  
+The dataset used in this project is our own collected **MP3D-FPE** dataset, which simulates a handled-camera walking through different rooms scenes rendered by [MINOS](https://minosworld.github.io/) simulator with [MP3D](https://niessner.github.io/Matterport/) real-world data. Upon this collected data, we annotate floor plan labels, estimated camera poses uisng OpenVSLAM[4], and estimated layout for each key-frame by HorizonNet[3]. Our dataset offers 360-rgb-images, depth images, ground truth and estimated camera poses, floor plan labels, and estimated layouts.  
 
 <!-- ![](https://i.imgur.com/qd80tlW.gif) -->
 ![](https://i.imgur.com/QxyEfdZ.gif)
@@ -51,7 +49,7 @@ For more details about our dataset, please see [MP3D-FPE dataset](mp3d_fpe_datas
 
 ### Settings
 
-We handle all hyperameters in a yaml file stored at ```./config/config.yaml```. Addtitionally, for practical purposes, we define a data manager class ```DataManager```, which handles the data in the **MP3D-FPE** dataset, i.e., ground truth information, estimated poses, rgb images, etc. The following is a typical initialization of our system:  
+All hyperameter settings of our system are stored in a yaml file at ```./config/config.yaml```. Addtitionally, for practical purposes, we define a data manager class ```DataManager```, which handles the data in the **MP3D-FPE** dataset, i.e., ground truth information, estimated poses, rgb images, etc. The following is a typical initialization of our system:  
 
 ```py
 from config import read_config
@@ -91,7 +89,7 @@ python main_eval_non_seq_approach.py --scene_list ./data/scene_list_pilot.txt --
 
 ### Computing metadata
 
-Note that our formulation rely on monocular estimated camera poses, therefore the real scale of the odometry is missed. Additionally, since every layout geometry is estimated from a monocular inference of HorizonNet[3], the layout scale is also missed. For these reasons, we additionally implemented ```main_compute_metadata.py```, which will cumpute these missed scales along with additional information isolated from the floor plan estimation.
+Note that our formulation rely on monocular estimated camera poses, therefore the real scale of the odometry is missed. Additionally, since every layout geometry is estimated from a monocular inference of HorizonNet[3], the layout scale is also missed. For these reasons, we additionally implemented ```main_compute_metadata.py```, which will compute these missed scales along with additional information isolated from the floor plan estimation pipeline.
 
 ```sh
 python main_compute_metadata.py --scene_list ./data/scene_list_pilot.txt --results ./test/
@@ -106,7 +104,7 @@ python main_compute_metadata.py --scene_list ./data/scene_list_pilot.txt --resul
 
 ## Acknowledgement
 - Thanks to professor [Wei-Chen Chiu](https://walonchiu.github.io/) for his unvaluable advises in this project.
-- the credits of this repo are shared with [Yueh-Cheng Liu](https://liu115.github.io/).
+- The credits of this repo are shared with [Yueh-Cheng Liu](https://liu115.github.io/).
 
 
 ## Citation
