@@ -40,9 +40,9 @@ Using this **REPO** you can:
 ---
 
 ### Dataset
-The dataset used in this project is our own collected **MP3D-FPE** dataset, which simulates a handled-camera walking through different rooms scenes rendered by [MINOS](https://minosworld.github.io/) simulator with [MP3D](https://niessner.github.io/Matterport/) real-world data. Upon this collected data, we annotate floor plan labels, estimated camera poses uisng OpenVSLAM[4], and estimated layout for each key-frame by HorizonNet[3]. Our dataset offers 360-rgb-images, depth images, ground thruth camera poses, floor plan labels, and estimated layouts.  
+The dataset used in this project is our own collected **MP3D-FPE** dataset, which simulates a handled-camera walking through different rooms scenes rendered by [MINOS](https://minosworld.github.io/) simulator with [MP3D](https://niessner.github.io/Matterport/) real-world data. Upon this collected data, we annotate floor plan labels, estimated camera poses uisng OpenVSLAM[4], and estimated layout for each key-frame by HorizonNet[3]. Our dataset offers 360-rgb-images, depth images, ground truth camera poses, floor plan labels, and estimated layouts.  
 
-![](https://i.imgur.com/qd80tlW.gif)
+<!-- ![](https://i.imgur.com/qd80tlW.gif) -->
 ![](https://i.imgur.com/QxyEfdZ.gif)
 
 For convenience, we have prepared a light-set of scenes which can be downloaded by running ```download_mp3d_fpe.py```. For accessing to the whole dataset, please send us an email to enrique.solarte.pardo@gmail.com, or nthu.vslab@gmail.com.
@@ -51,7 +51,7 @@ For more details about our dataset, please see [MP3D-FPE dataset](mp3d_fpe_datas
 
 ### Settings
 
-We handle all the involved hyperameter in a yaml file stored at ```./config/config.yaml```. For practical purposes, we define a data manager class ```DataManager```, which handles the data in the MP3D-FPE dataset, i.e., ground-thrue information, estimated poses, rgb images, etc. The following is a typical initialization of our system:  
+We handle all hyperameters in a yaml file stored at ```./config/config.yaml```. Addtitionally, for practical purposes, we define a data manager class ```DataManager```, which handles the data in the **MP3D-FPE** dataset, i.e., ground truth information, estimated poses, rgb images, etc. The following is a typical initialization of our system:  
 
 ```py
 from config import read_config
@@ -74,7 +74,7 @@ For executing **360-DFPE**, we have created three main scripts, i.e., ```main_ev
 
 ##### Running on a single scene (Single or Multiple rooms)
 ```sh
-python main_eval_scene.py --scene_dir 1LXtFkjw3qL_0 --results ./test/
+python main_eval_scene.py --scene_name 1LXtFkjw3qL_0 --results ./test/
 ```
 ```sh 
 python main_eval_scene.py --scene_path $MP3D_FPE_DATASET_DIR/1LXtFkjw3qL/0 --results ./test/
@@ -91,7 +91,7 @@ python main_eval_non_seq_approach.py --scene_list ./data/scene_list_pilot.txt --
 
 ### Computing metadata
 
-Note that our formulation rely on monocular estimated camera poses, therefore the real scale of the odometry is missed. Additionally, since our primary source of geoemtry are estimated layouts from HorizonNet[3], the layout scale will vary with different camera heights. For these reasons, we additionally implemented ```main_compute_metadata.py```, which will cumpute these missed scales separatly, hence easly registering any sequence of estimated layout.
+Note that our formulation rely on monocular estimated camera poses, therefore the real scale of the odometry is missed. Additionally, since every layout geometry is estimated from a monocular inference of HorizonNet[3], the layout scale is also missed. For these reasons, we additionally implemented ```main_compute_metadata.py```, which will cumpute these missed scales along with additional information isolated from the floor plan estimation.
 
 ```sh
 python main_compute_metadata.py --scene_list ./data/scene_list_pilot.txt --results ./test/
@@ -99,6 +99,9 @@ python main_compute_metadata.py --scene_list ./data/scene_list_pilot.txt --resul
 
 ![](https://i.imgur.com/xgvAm4d.png)
 
+
+### Some qualitative results 
+![](https://i.imgur.com/32z3q3i.png)
 
 
 ## Acknowledgement
