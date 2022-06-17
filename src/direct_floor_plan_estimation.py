@@ -34,7 +34,7 @@ class DirectFloorPlanEstimation:
     def compute_non_sequential_fpe(self):
         """
         For debugging purposes only. This method estimates
-        a FPE based on all LYs and rooms ROOM-ID knowing in advance
+        a FPE based on all LYs and rooms ROOM-ID known in advance
         """
         print("Runing Non-sequential estimation")
         list_ly = self.dt.get_list_ly(cam_ref=CAM_REF.WC_SO3)

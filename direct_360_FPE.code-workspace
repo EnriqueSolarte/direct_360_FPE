@@ -3,8 +3,8 @@
         {
             "path": "."
         },
-        {
-            "path": "/media/NFS/kike/MP3D_360_FPE/MP3D_360_FPE"
-        }
+        // {
+        //     "path": "/media/NFS/kike/MP3D_360_FPE/MP3D_360_FPE"
+        // }
     ]
 }
