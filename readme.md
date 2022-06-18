@@ -20,7 +20,7 @@ For a quick overview please visit our [website project](https://enriquesolarte.g
 
 This is the implementation of **360-DFPE** for sequential floor plan estimation using only monocular 360-images as input. 
 
-Using this **REPO** you can:
+Using this **REPO**, you can:
 
 *  Excecute **360-DFPE** for single and multiple room scenes in a sequential and non-sequential manner. 
 *  Register multiple 360-layouts with estimated camera poses, assuming an unknown visual odometry scale and missed camera height. For convenience, this registration can be executed isolated from the floor plan estimation pipeline. see [Computing metadata](#computing-metadata)
@@ -49,7 +49,7 @@ For more details about our dataset, please see [MP3D-FPE dataset](mp3d_fpe_datas
 
 ### Settings
 
-All hyperameter settings of our system are stored in a yaml file at ```./config/config.yaml```. Addtitionally, for practical purposes, we define a data manager class ```DataManager```, which handles the data in the **MP3D-FPE** dataset, i.e., ground truth information, estimated poses, rgb images, etc. The following is a typical initialization of our system:  
+All hyperameter settings are stored in a yaml file at ```./config/config.yaml```. Addtitionally, for practical purposes, we define a data manager class ```DataManager```, which handles the data in the **MP3D-FPE** dataset, i.e., ground truth information, estimated poses, rgb images, etc. The following is a typical initialization of our system:  
 
 ```py
 from config import read_config
