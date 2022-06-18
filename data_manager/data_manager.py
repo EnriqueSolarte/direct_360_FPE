@@ -25,7 +25,7 @@ class DataManager:
 
         self.list_ly = []
         print("DataManager successfully loaded...")
-        print(f"Scene Category: {self.cfg['data.scene_category']}")
+        # print(f"Scene Category: {self.cfg['data.scene_category']}")
         print(f"Scene: {self.scene_name}")
 
     def set_paths(self):
@@ -34,12 +34,11 @@ class DataManager:
         """
         try:
             self.scene_name = self.cfg['data.scene'] + '_' + self.cfg['data.scene_version']
-            self.mp3d_fpe_scene_dir = os.path.join(
+            self.mp3d_fpe_scene_dir = glob.glob(os.path.join(
                 self.cfg['path.mp3d_fpe_dir'],
-                self.cfg['data.scene_category'],
-                self.cfg['data.scene'],
+                f"*/{self.cfg['data.scene']}",
                 self.cfg['data.scene_version']
-            )
+            ))[0]
             self.mp3d_fpe_scene_vo_dir = glob.glob(os.path.join(self.mp3d_fpe_scene_dir, 'vo*'))[0]
         except:
             raise ValueError(f"ERROR AT READING SCENE --> {self.mp3d_fpe_scene_dir}")

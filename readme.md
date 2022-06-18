@@ -74,9 +74,6 @@ For executing **360-DFPE**, we have created three main scripts, i.e., ```main_ev
 ```sh
 python main_eval_scene.py --scene_name 1LXtFkjw3qL_0 --results ./test/
 ```
-```sh 
-python main_eval_scene.py --scene_path $MP3D_FPE_DATASET_DIR/1LXtFkjw3qL/0 --results ./test/
-```
 
 ##### Running from a list of scenes
 ```sh
