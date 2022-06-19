@@ -1,4 +1,5 @@
 import os
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 from config import read_config
@@ -9,7 +10,6 @@ from utils.enum import CAM_REF
 from utils.data_utils import flatten_lists_of_lists
 from utils.visualization.room_utils import plot_curr_room_by_patches, plot_all_rooms_by_patches
 from utils.visualization.room_utils import plot_floor_plan, plot_all_planes, plot_planes_rooms_patches
-# from utils.metric import evaluate_rooms_pr
 from utils.eval_utils import evaluate_corners_pr, evaluate_rooms_pr
 from utils.io import read_scene_list
 from utils.eval_utils import evaluate_scene, dump_images, dump_result
@@ -68,9 +68,16 @@ def main(config_file, scene_list_file, output_dir):
         dump_result(all_result, output_dir)
 
 
+
+def get_passed_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--scene_list', type=str, default="./data/scene_list_pilot.txt", help='txt file with a list of scenes')
+    parser.add_argument('--results', type=str, default="./test", help='Output directory for results')
+    parser.add_argument('--cfg', type=str, default="./config/config.yaml", help='Config file')
+    opt = parser.parse_args()
+    return opt
+
+
 if __name__ == '__main__':
-    # TODO read from passed args
-    config_file = "./config/config.yaml"
-    scene_list_file = './data/scene_list_50_multi_room.txt'
-    output_dir = './test/eval_all_2'
-    main(config_file, scene_list_file, output_dir)
+    opt = get_passed_args()
+    main(config_file=opt.cfg, scene_list_file=opt.scene_list, output_dir= opt.results )

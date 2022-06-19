@@ -13,6 +13,7 @@ from utils.room_id_eval_utils import eval_2D_room_id_iou, summarize_results_room
 from utils.io import read_csv_file, save_csv_file
 import os
 from utils.eval_utils import evaluate_scene, dump_images, dump_result
+from main_eval_list_scenes import get_passed_args
 
 
 def main(config_file, scene_list_file, output_dir):
@@ -31,7 +32,7 @@ def main(config_file, scene_list_file, output_dir):
         fpe = DirectFloorPlanEstimation(dt)
 
         fpe.compute_non_sequential_fpe()
-        
+
         fpe.masking_ocg_map()
         points_gt = fpe.dt.pcl_gt      # (3, N)
 
@@ -69,9 +70,5 @@ def main(config_file, scene_list_file, output_dir):
 
 
 if __name__ == '__main__':
-    # TODO read from  passed args
-    config_file = "./config/config.yaml"
-    scene_list_file = './data/scene_list_50_multi_room.txt'
-    output_dir = './test/non_seq_all'
-
-    main(config_file, scene_list_file, output_dir)
+    opt = get_passed_args()
+    main(config_file=opt.cfg, scene_list_file=opt.scene_list, output_dir=opt.results)

@@ -1,8 +1,8 @@
 import os
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 from config import read_config
-from config.config import parse_args
 from data_manager import DataManager
 from src import DirectFloorPlanEstimation
 from utils.visualization.vispy_utils import plot_color_plc
@@ -67,7 +67,15 @@ def main(opt):
     dump_result([result_dict], output_dir)
 
 
+def get_passed_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--scene_name', type=str, default="1LXtFkjw3qL_0", help='MP3D scene with its version e.g 1LXtFkjw3qL_0')
+    parser.add_argument('--results', type=str, default="./test", help='Output directory for results')
+    parser.add_argument('--cfg', type=str, default="./config/config.yaml", help='Config file')
+    opt = parser.parse_args()
+    return opt
+
 if __name__ == '__main__':
 
-    opt = parse_args()
+    opt = get_passed_args()
     main(opt)

@@ -25,7 +25,6 @@ class DataManager:
 
         self.list_ly = []
         print("DataManager successfully loaded...")
-        # print(f"Scene Category: {self.cfg['data.scene_category']}")
         print(f"Scene: {self.scene_name}")
 
     def set_paths(self):
@@ -254,7 +253,7 @@ class DataManager:
         plt.savefig(os.path.join(output_dir, f"gt_rooms_{self.cfg['data.label_version']}.jpg"), bbox_inches='tight') 
         data["data.scene"] = self.cfg["data.scene"]
         data["data.scene_version"] = self.cfg["data.scene_version"]
-        data["data.scene_category"] = self.cfg["data.scene_category"]
+        # data["data.scene_category"] = self.cfg["data.scene_category"]
         data["data.label_version"] = self.cfg["data.label_version"]
         
         filename = os.path.join(output_dir, f"room_gt_{data['data.label_version']}.yaml")

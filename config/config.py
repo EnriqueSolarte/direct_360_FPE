@@ -37,12 +37,3 @@ def overwite_version(cfg, version):
     # cfg['path.results_dir'] = dir_results
     os.makedirs(dir_results, exist_ok=True)
 
-
-def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--scene_name', type=str, default="1LXtFkjw3qL_0", help='MP3D scene with its version e.g 1LXtFkjw3qL_0')
-    parser.add_argument('--scene_list', type=str, default="./data/scene_list_pilot.txt", help='txt file with a list of scenes')
-    parser.add_argument('--results', type=str, default="./test", help='Output directory for results')
-    parser.add_argument('--cfg', type=str, default="./config/config.yaml", help='Config file')
-    opt = parser.parse_args()
-    return opt
