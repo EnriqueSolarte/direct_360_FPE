@@ -70,7 +70,7 @@ fpe.scale_recover.esimate_vo_scale()
 ```
 ### How to execute 360-DFPE
 
-For executing **360-DFPE**, we have created three main scripts, i.e., ```main_eval_scene.py```, ```main_eval_list_scenes.py```, ```main_eval_non_seq_approach.py```. To run these files execute the next command lines:
+For executing **360-DFPE**, we have created three main scripts, i.e., ```main_eval_scene.py```, ```main_eval_list_scenes.py```, ```main_eval_non_seq_approach.py```. 
 
 ##### Running on a single scene (Single or Multiple rooms)
 ```sh
@@ -88,7 +88,7 @@ python main_eval_non_seq_approach.py --scene_list ./data/scene_list_pilot.txt --
 
 ### Computing metadata
 
-Note that our formulation rely on monocular estimated camera poses, therefore the real scale of the odometry is missed. Additionally, since every layout geometry is estimated from a monocular inference of HorizonNet[3], the layout scale is also missed. For these reasons, we additionally implemented ```main_compute_metadata.py```, which will compute these missed scales along with additional information isolated from the floor plan estimation pipeline.
+Note that our formulation rely on monocular estimated camera poses, therefore the real scale of the odometry is missed. Additionally, since every layout geometry is estimated from a monocular inference of HorizonNet[3], the layout scale is also missed. For these reasons, we additionally implemented ```main_compute_metadata.py```, which will compute these missed scales along with some additional information such as ground truth rooms, labels, and room-corners, and the missed scales need for 360-layout registration. For convenience, this script runs isolated from the floor plan estimation pipeline. 
 
 ```sh
 python main_compute_metadata.py --scene_list ./data/scene_list_pilot.txt --results ./test/
