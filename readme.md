@@ -1,6 +1,7 @@
 # 360-DFPE: Leveraging Monocular 360-Layouts for Direct Floor Plan Estimation
 
-This project was published at [IEEE Robotics and Automation Letters RA-L](https://ieeexplore.ieee.org/document/9772341) 
+This project was published in [IEEE Robotics and Automation Letters RA-L](https://ieeexplore.ieee.org/document/9772341)                      
+[[ArXiv Paper]](https://arxiv.org/abs/2112.06180)
 
 ### Introduction
 For a quick overview please visit our [website project](https://enriquesolarte.github.io/360-dfpe/) or watch our video demo depicted below. For further questions, please contact us to enrique.solarte.pardo@gmail.com
@@ -11,14 +12,14 @@ For a quick overview please visit our [website project](https://enriquesolarte.g
 ---
 ### News
 
-* **06/17/2022**: Code and pilot scene released 
+* **06/19/2022**: Code and pilot scenes released 
 
-* *soon mp3d_fpe dataset release*
+* *Complete **mp3d_fpe** dataset release soon*
 ---
 
 ### Description
 
-This is the implementation of **360-DFPE** for sequential floor plan estimation using only monocular 360-images as input. 
+This is the implementation of the **360-DFPE**, sequential floor plan estimation using only monocular 360-images as input. 
 
 Using this **REPO**, you can:
 
@@ -38,7 +39,7 @@ Using this **REPO**, you can:
 ---
 
 ### Dataset
-The dataset used in this project is our own collected **MP3D-FPE** dataset, which simulates a handled-camera walking through different rooms scenes rendered by [MINOS](https://minosworld.github.io/) simulator with [MP3D](https://niessner.github.io/Matterport/) real-world data. Upon this collected data, we annotate floor plan labels, estimated camera poses uisng OpenVSLAM[4], and estimated layout for each key-frame by HorizonNet[3]. Our dataset offers 360-rgb-images, depth images, ground truth and estimated camera poses, floor plan labels, and estimated layouts.  
+The dataset used in this project is our own collected **MP3D-FPE** dataset, which simulates a handled-camera walking through different rooms scenes rendered by [MINOS](https://minosworld.github.io/) simulator with [MP3D](https://niessner.github.io/Matterport/) real-world data. Upon this collected data, we annotate floor plan labels, estimated camera poses uisng OpenVSLAM[4], and estimated layout for each key-frame by HorizonNet[3]. Our dataset offers 360-rgb-images, depth maps, ground truth and estimated camera poses, floor plan labels, and estimated layouts.  
 
 <!-- ![](https://i.imgur.com/qd80tlW.gif) -->
 ![](https://i.imgur.com/QxyEfdZ.gif)
@@ -68,7 +69,7 @@ fpe.scale_recover.esimate_vo_scale()
 ```
 ### How to execute 360-DFPE
 
-For executing **360-DFPE**, we have created three main scripts, i.e., ```main_eval_scene.py```, ```main_eval_list_scenes.py```, ```main_eval_non_seq_approach.py```. To run these files please follows the next command lines:
+For executing **360-DFPE**, we have created three main scripts, i.e., ```main_eval_scene.py```, ```main_eval_list_scenes.py```, ```main_eval_non_seq_approach.py```. To run these files execute the next command lines:
 
 ##### Running on a single scene (Single or Multiple rooms)
 ```sh
