@@ -1,7 +1,7 @@
 import os
 import numpy as np
 from tqdm import tqdm
-
+import matplotlib.pyplot as plt
 from src.scale_recover import ScaleRecover
 from src.solvers.plane_estimator import PlaneEstimator
 from src.solvers.room_shape_estimator import SPAError
@@ -34,7 +34,7 @@ class DirectFloorPlanEstimation:
     def compute_non_sequential_fpe(self):
         """
         For debugging purposes only. This method estimates
-        a FPE based on all LYs and rooms ROOM-ID knowing in advance
+        a FPE based on all LYs and rooms ROOM-ID known in advance
         """
         print("Runing Non-sequential estimation")
         list_ly = self.dt.get_list_ly(cam_ref=CAM_REF.WC_SO3)
@@ -107,6 +107,8 @@ class DirectFloorPlanEstimation:
                 return
 
         self.update_data(layout)
+        # plt.imshow(layout.patch.ocg_map)
+        # plt.savefig('test.jpg')
         # plot_curr_room_by_patches(self)
         # plot_all_rooms_by_patches(self)
         # # plot_estimated_orientations(self.curr_room.theta_z)
@@ -293,7 +295,7 @@ class DirectFloorPlanEstimation:
 
         [r.set_status(ROOM_STATUS.OVERLAPPING) for r in self.list_rooms]
         assert len(self.global_ocg_patch.ocg_map) == len(self.list_rooms)
-        for room_ocg_map, room in zip(self.global_ocg_patch.ocg_map, self.list_rooms):
+        for room_ocg_map, room in zip(self.global_ocg_patch.ocg_map, self.list_rooms):            
             if room.status != ROOM_STATUS.OVERLAPPING:
                 # ! This avoid to process merged rooms
                 continue
@@ -310,7 +312,7 @@ class DirectFloorPlanEstimation:
                 # ! Exits an overlapping betwen rooms
                 # *(1) merge rooms and append at the edn of list_rooms (change ready flag)
                 # self.merge_rooms(room, tmp_room)
-            if np.sum(np.array(iou_meas) > self.dt.cfg.get("room_id.iou_overlapping_allowed", 0.25)) > 0:
+            if np.sum(np.array(iou_meas) > self.dt.cfg.get("room_id.iou_overlapping_allowed")) > 0:
                 self.merge_rooms(room, rooms_candidates[np.argmax(iou_meas)])
 
         self.delete_rooms()
@@ -379,3 +381,13 @@ class DirectFloorPlanEstimation:
             except SPAError as e:
                 print(e)
         return room_corners
+
+    def masking_ocg_map(self):
+        for r in self.list_rooms:
+            m = r.local_ocg_patches.ocg_map < self.dt.cfg['room_id.ocg_threshold']
+            r.local_ocg_patches.ocg_map[m] = 0
+            m = r.local_ocg_patches.ocg_map > self.dt.cfg['room_id.ocg_threshold']
+            r.local_ocg_patches.ocg_map[m] = 1
+            # plt.imshow(r.local_ocg_patches.ocg_map)
+            # plt.savefig(f'test{id(r)}.jpg')
+        

@@ -1,4 +1,5 @@
 import os
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 from config import read_config
@@ -9,15 +10,19 @@ from utils.enum import CAM_REF
 from utils.data_utils import flatten_lists_of_lists
 from utils.visualization.room_utils import plot_curr_room_by_patches, plot_all_rooms_by_patches
 from utils.visualization.room_utils import plot_floor_plan, plot_all_planes, plot_planes_rooms_patches
-# from utils.metric import evaluate_rooms_pr
 from utils.eval_utils import evaluate_corners_pr, evaluate_rooms_pr
 from utils.io import read_scene_list
 from utils.eval_utils import evaluate_scene, dump_images, dump_result
 
 
-def main(config_file, output_dir):
+def main(opt):
+    config_file = opt.cfg
+    output_dir = opt.results
     cfg = read_config(config_file=config_file)
-   
+
+    cfg["data.scene"] = opt.scene_name.split("_")[0]
+    cfg["data.scene_version"] = opt.scene_name.split("_")[1]
+
     dt = DataManager(cfg)
     fpe = DirectFloorPlanEstimation(dt)
     list_ly = dt.get_list_ly(cam_ref=CAM_REF.WC_SO3)
@@ -25,8 +30,9 @@ def main(config_file, output_dir):
     for ly in list_ly:
         fpe.estimate(ly)
 
-    fpe.global_ocg_patch.update_bins()
-    fpe.global_ocg_patch.update_ocg_map()
+    fpe.eval_room_overlapping()
+    fpe.masking_ocg_map()
+
     points_gt = fpe.dt.pcl_gt      # (3, N)
 
     room_corner_list = fpe.compute_room_shape_all()
@@ -47,22 +53,29 @@ def main(config_file, output_dir):
     # Saving the results
     results_dir = os.path.join(output_dir, f"{cfg['data.scene']}_{cfg['data.scene_version']}")
     os.makedirs(results_dir, exist_ok=True)
-    
+
     # GT data for references
     dt.save_gt_rooms(results_dir)
-    
+
     # Estimated VO-SCALE and density 2d function
     fpe.scale_recover.save_estimation(results_dir)
-    
+
     #  Estimated results
     dump_images(images_dict, results_dir)
-    
+
     # writing results
     dump_result([result_dict], output_dir)
 
 
+def get_passed_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--scene_name', type=str, default="1LXtFkjw3qL_0", help='MP3D scene with its version e.g 1LXtFkjw3qL_0')
+    parser.add_argument('--results', type=str, default="./test", help='Output directory for results')
+    parser.add_argument('--cfg', type=str, default="./config/config.yaml", help='Config file')
+    opt = parser.parse_args()
+    return opt
+
 if __name__ == '__main__':
-    # TODO read from passed args
-    config_file = "./config/config.yaml"
-    output_dir = './test'
-    main(config_file, output_dir)
+
+    opt = get_passed_args()
+    main(opt)

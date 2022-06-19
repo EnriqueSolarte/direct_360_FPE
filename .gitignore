@@ -1,6 +1,10 @@
 *.pyc
 *__pycache__/
 *results/*
-*.code-workspace
+# *.code-workspace
 .vscode
 /test
+<<<<<<< HEAD
+=======
+/dataset
+>>>>>>> dev

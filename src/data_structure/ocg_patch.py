@@ -136,7 +136,8 @@ class OCGPatches:
             self.ocg_map[idx, uv[1]:uv[1]+h, uv[0]:uv[0]+w] = patch.ocg_map
 
         if binary_map:
-            self.ocg_map[self.ocg_map > self.dt.cfg.get("room_id.ocg_threshold", 0.5)] = 1
+            self.ocg_map[self.ocg_map < self.dt.cfg.get("room_id.ocg_threshold")] = 0
+            self.ocg_map[self.ocg_map > self.dt.cfg.get("room_id.ocg_threshold")] = 1
             self.ocg_map = self.ocg_map.astype(np.int)
 
     def patch_size_weighting(self):

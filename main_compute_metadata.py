@@ -13,34 +13,31 @@ from utils.visualization.room_utils import plot_floor_plan, plot_all_planes, plo
 from utils.eval_utils import evaluate_corners_pr, evaluate_rooms_pr
 from utils.io import read_csv_file, read_scene_list
 import yaml
+from main_eval_list_scenes import get_passed_args
 
 
 def compute_metadata(config_file, scene_list_file, output_dir):
     """
     Computes the metadata for the scene listed in @scene_list_file using the configuration file @config_file 
     """
-    
+
     cfg = read_config(config_file=config_file)
     scene_list = read_csv_file(scene_list_file)
     for scene in scene_list:
-     
-        # ! Overrite data.* values using scene_list (iter)
-        if scene.split('/').__len__() > 1:
-            cfg['data.scene_category'], cfg['data.scene'], cfg['data.scene_version'] = scene.split('/')
-        else:
-            cfg['data.scene'], cfg['data.scene_version'] = scene.split('_')
+
+        cfg['data.scene'], cfg['data.scene_version'] = scene.split('_')
 
         dt = DataManager(cfg)
         fpe = DirectFloorPlanEstimation(dt)
         # ! Set the list_ly into dt class
         dt.get_list_ly(cam_ref=CAM_REF.WC_SO3)
 
-        metadata_dir = os.path.join(output_dir, f"{scene}")
+        metadata_dir = os.path.join(output_dir, "metadata", f"{scene}")
         os.makedirs(metadata_dir, exist_ok=True)
-       
+
         # ! Saving GT Room data
         dt.save_gt_rooms(metadata_dir)
-        
+
         if not fpe.scale_recover.estimate_vo_and_gt_scale():
             raise ValueError("Scale recovering failed")
 
@@ -49,8 +46,5 @@ def compute_metadata(config_file, scene_list_file, output_dir):
 
 
 if __name__ == '__main__':
-    # TODO read from passed args
-    config_file = "./config/config.yaml"
-    scene_list_file = './data/scene_list_50_multi_room.txt'
-    output_dir = "./test/metadata"
-    compute_metadata(config_file, scene_list_file, output_dir)
+    opt = get_passed_args()
+    compute_metadata(config_file=opt.cfg, scene_list_file=opt.scene_list, output_dir=opt.results)
