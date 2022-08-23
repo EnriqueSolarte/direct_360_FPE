@@ -4,7 +4,4 @@
 # *.code-workspace
 .vscode
 /test
-<<<<<<< HEAD
-=======
 /dataset
->>>>>>> dev

@@ -9,7 +9,8 @@ def download_scenes(opt):
     output_dir = os.path.join(opt.output_dir)
     os.makedirs(output_dir, exist_ok=True)
 
-    list_google_scenes = "./data/pilot_scenes_google_ids.csv"
+    # list_google_scenes = "./data/pilot_scenes_google_ids.csv"
+    list_google_scenes = opt.list_google_scenes
     scenes_ids = pd.read_csv(list_google_scenes).values
 
     for scene in scenes_ids:
@@ -22,6 +23,7 @@ def download_scenes(opt):
 def get_passed_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output_dir', type=str, default="./dataset", help='Output dataset directory...')
+    parser.add_argument('--ids_file', type=str, default="./data/pilot_scenes_google_ids.csv", help="lists of IDS to download from GoogleDrive")
     opt = parser.parse_args()
     return opt
 

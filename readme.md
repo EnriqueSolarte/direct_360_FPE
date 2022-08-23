@@ -46,10 +46,10 @@ The dataset used in this project is our own collected **MP3D-FPE** dataset, whic
 
 For convenience, we have prepared a light-set of scenes which can be downloaded by running ```download_mp3d_fpe.py```. For accessing to the whole dataset, please send us an email to enrique.solarte.pardo@gmail.com, or nthu.vslab@gmail.com.
 
-For more details about our dataset, please see [MP3D-FPE dataset](mp3d_fpe_dataset.md)
+<!-- For more details about our dataset, please see [MP3D-FPE dataset](mp3d_fpe_dataset.md)
 
 For running **360-DFPE** using a custom dataset, please see  [Runing 360-DFPE on custom dataset](360_dfpe_in_custom_data.md)
-### Settings
+### Settings -->
 
 All hyperameter settings are stored in a yaml file at ```./config/config.yaml```. Addtitionally, for practical purposes, we define a data manager class ```DataManager```, which handles the data in the **MP3D-FPE** dataset, i.e., ground truth information, estimated poses, rgb images, etc. The following is a typical initialization of our system:  
 
