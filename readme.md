@@ -14,7 +14,7 @@ For a quick overview please visit our [website project](https://enriquesolarte.g
 
 * **19/07/2022**: Code and pilot scenes released 
 
-* **29/01/2023**: Free access to MP3D-FPE.  
+* **29/01/2023**: Free access to MP3D-FPE dataset.  
 ---
 
 ### Description
