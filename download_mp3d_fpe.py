@@ -1,7 +1,8 @@
 import argparse
 import os
-import pandas as pd
+
 import gdown
+import pandas as pd
 
 
 def download_scenes(opt):
@@ -10,13 +11,13 @@ def download_scenes(opt):
     os.makedirs(output_dir, exist_ok=True)
 
     # list_google_scenes = "./data/pilot_scenes_google_ids.csv"
-    list_google_scenes = opt.list_google_scenes
-    scenes_ids = pd.read_csv(list_google_scenes).values
+    list_google_scenes = opt.ids_file
+    scenes_ids = pd.read_csv(list_google_scenes)
 
-    for scene in scenes_ids:
-        print(f"Downloading... {scene[0]}")
-        url = f"https://drive.google.com/uc?id={scene[1]}"
-        output_file = os.path.join(output_dir, scene[0])
+    for zip_fn, gd_id in zip(scenes_ids.Id, scenes_ids.Path):
+        print(f"Downloading... {zip_fn}")
+        url = f"https://drive.google.com/uc?id={gd_id}"
+        output_file = os.path.join(output_dir, zip_fn)
         gdown.download(url, output_file, quiet=False)
 
 
