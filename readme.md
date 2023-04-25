@@ -41,10 +41,13 @@ Using this **REPO**, you can:
 ### Dataset
 The dataset used in this project is our own collected **MP3D-FPE** dataset, which simulates a handled-camera walking through different rooms scenes rendered by [MINOS](https://minosworld.github.io/) simulator with [MP3D](https://niessner.github.io/Matterport/) real-world data. Upon this collected data, we annotate floor plan labels, estimated camera poses uisng OpenVSLAM[4], and estimated layout for each key-frame by HorizonNet[3]. Our dataset offers 360-rgb-images, depth maps, ground truth and estimated camera poses, floor plan labels, and estimated layouts.  
 
-
-* [MP3D-FPE dataset](https://drive.google.com/drive/folders/1Mx2nzikAF8HiOAn5pAxqccRrQOkCj_3n?usp=share_link)
+* [MP3D-FPE dataset](https://drive.google.com/drive/folders/1IAHHnr5c9x9YXIizLqRigsCMlfTW1Eer?usp=share_link)
 * [Pilot scenes](https://drive.google.com/drive/folders/1kO_rvAAJ4y4HuBN-PczhMw6Yb1cBPvx7?usp=share_link)
-  
+
+### DISCLAIMER:
+MP3D-FPE is a collected dataset for the task of floor plan estimation. This dataset is stricly an extension of [MP3D](https://niessner.github.io/Matterport/). Therefore, the data policies and copyrights of this dataset are under the the terms and condition described by [Matterport](https://niessner.github.io/Matterport/#download:~:text=Dataset%20Download,to%20the%20dataset.). 
+
+
 <!-- ![](https://i.imgur.com/qd80tlW.gif) -->
 ![](https://i.imgur.com/QxyEfdZ.gif)
 
