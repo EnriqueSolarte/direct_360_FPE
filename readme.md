@@ -12,6 +12,8 @@ For a quick overview please visit our [website project](https://enriquesolarte.g
 ---
 ### News
 
+* **18/05/2023**: Added `pcl.pyl` files to GoogleDrive. Fix issue [#2](https://github.com/EnriqueSolarte/direct_360_FPE/issues/2) 
+
 * **19/07/2022**: Code and pilot scenes released. [HERE](https://drive.google.com/drive/folders/1kO_rvAAJ4y4HuBN-PczhMw6Yb1cBPvx7?usp=share_link)
 
 * **29/01/2023**: Open access to MP3D-FPE dataset [HERE](https://drive.google.com/drive/folders/1Mx2nzikAF8HiOAn5pAxqccRrQOkCj_3n?usp=share_link).  
