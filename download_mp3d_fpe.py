@@ -14,15 +14,16 @@ def download_scenes(opt):
     # list_google_scenes = "./data/pilot_scenes_google_ids.csv"
     list_google_scenes = opt.ids_file
     scenes_ids = pd.read_csv(list_google_scenes)
-
+    
+    # ! Downloading zip files
     for gd_id, zip_fn in zip(scenes_ids.Id, scenes_ids.Path):
         print(f"Downloading... {zip_fn}")
         url = f"https://drive.google.com/uc?id={gd_id}"
         output_file = os.path.join(output_dir, zip_fn)
         gdown.download(url, output_file, quiet=False)
 
+    # ! Unzipping zip files
     mp3d_fpe_dir = os.path.join(Path(output_dir).parent, "mp3d_fpe_dir")
-    
     for zip_fn in tqdm(os.listdir(output_dir)):
         if "_npy.zip" in zip_fn:
             continue 

@@ -1,4 +1,4 @@
-path.mp3d_fpe_dir: /media/NFS/kike/MP3D_360_FPE/MP3D_360_FPE/
+path.mp3d_fpe_dir: ./dataset/mp3d_fpe_dir
 
 data.ly_model: 'hn_mp3d'
 data.ly_scale: 1
