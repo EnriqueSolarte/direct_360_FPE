@@ -87,7 +87,9 @@ class VO_ScaleRecover:
                 distances = np.hstack([ly.cam2boundary for ly in list_ly])
                 mask_points = distances < np.median(distances) * 2
                 print("Masking points", mask_points.shape, np.sum(mask_points))       
-            plot_scale_recover_vis(list_ly, best_vo_scale, self.grid_size, fn, mask_points,hist_scale=self.hist_best_scale, hist_entropy=self.hist_best_entropy)
+            else:
+                mask_points = None
+            plot_scale_recover_vis(list_ly, best_vo_scale, self.grid_size, fn, mask_points, hist_scale=self.hist_best_scale, hist_entropy=self.hist_best_entropy)
         
     def compute_best_vo_scale(self):
         # idx_min = np.argmin(self.hist_best_entropy)
