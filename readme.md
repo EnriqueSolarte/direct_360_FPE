@@ -11,6 +11,7 @@ For a quick overview please visit our [website project](https://enriquesolarte.g
 
 ---
 ### News
+* **28/12/2023**: Add setup.py to the project and rename src folder to direct_floor_plan_estimation for better import-like format.
 
 * **18/05/2023**: Added `pcl.pyl` files to GoogleDrive. Fix issue [#2](https://github.com/EnriqueSolarte/direct_360_FPE/issues/2) 
 
@@ -39,6 +40,14 @@ Using this **REPO**, you can:
 
 
 ---
+### Installation
+```sh
+git clone git@github.com:EnriqueSolarte/direct_360_FPE.git
+
+cd direct_360_FPE
+pip install -r requirements.txt
+pip install .
+```
 
 ### Dataset
 The dataset used in this project is our own collected **MP3D-FPE** dataset, which simulates a handled-camera walking through different rooms scenes rendered by [MINOS](https://minosworld.github.io/) simulator with [MP3D](https://niessner.github.io/Matterport/) real-world data. Upon this collected data, we annotate floor plan labels, estimated camera poses uisng OpenVSLAM[4], and estimated layout for each key-frame by HorizonNet[3]. Our dataset offers 360-rgb-images, depth maps, ground truth and estimated camera poses, floor plan labels, and estimated layouts.  
@@ -66,7 +75,7 @@ All hyperameter settings are stored in a yaml file at ```./config/config.yaml```
 ```py
 from config import read_config
 from data_manager import DataManager
-from src import DirectFloorPlanEstimation
+from direct_floor_plan_estimation import DirectFloorPlanEstimation
 
 config_file = "./config/config.yaml"
 

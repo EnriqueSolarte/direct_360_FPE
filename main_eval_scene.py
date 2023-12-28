@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from config import read_config
 from data_manager import DataManager
-from src import DirectFloorPlanEstimation
+from direct_floor_plan_estimation import DirectFloorPlanEstimation
 from utils.visualization.vispy_utils import plot_color_plc
 from utils.enum import CAM_REF
 from utils.data_utils import flatten_lists_of_lists

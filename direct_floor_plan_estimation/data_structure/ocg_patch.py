@@ -4,7 +4,7 @@ import cv2
 from skimage.transform import resize
 from utils.geometry_utils import extend_array_to_homogeneous
 from utils.ocg_utils import compute_uv_bins, project_xyz_to_uv
-from src.data_structure import layout
+from direct_floor_plan_estimation.data_structure import layout
 from scipy import stats
 
 

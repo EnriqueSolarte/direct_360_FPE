@@ -3,7 +3,7 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 from skimage.color import rgb2hsv, hsv2rgb
-from src.solvers.theta_estimator import GaussianModel_1D
+from direct_floor_plan_estimation.solvers.theta_estimator import GaussianModel_1D
 from utils.eval_utils import rotate_by_axis_corners
 import os
 
@@ -14,7 +14,7 @@ def plot_curr_room_by_patches(fpe):
     """
     room_ocg_map = fpe.curr_room.local_ocg_patches.ocg_map.copy()
     pose_uv = fpe.curr_room.local_ocg_patches.project_xyz_to_uv(
-        fpe.curr_room.list_ly[-1].pose_est.t.reshape(3, 1)
+        fpe.curr_room.list_ly[-1].pose.t.reshape(3, 1)
     )
 
     room_ocg_map[pose_uv[1, :], pose_uv[0, :]] = -1

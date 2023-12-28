@@ -201,7 +201,7 @@ class SPABasic:
         return theta_vecs
 
     def get_camera_poses(self):
-        poses = [ly.pose_est.t for ly in self.room.list_ly]
+        poses = [ly.pose.t for ly in self.room.list_ly]
         poses = np.stack(poses, axis=1)[[0, 2], :]
         return poses
 

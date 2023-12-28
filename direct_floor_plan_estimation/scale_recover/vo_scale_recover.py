@@ -2,8 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-import data_manager
-
 
 class VO_ScaleRecover:
     def __init__(self, data_manager):
@@ -13,8 +11,8 @@ class VO_ScaleRecover:
 
     def apply_vo_scale(self, scale):
         return np.hstack([
-            obj.boundary[:, obj.cam2boundary_mask] + (scale / obj.pose_est.vo_scale) *
-            np.ones_like(obj.boundary[:, obj.cam2boundary_mask]) * obj.pose_est.t.reshape(3, 1)
+            obj.boundary[:, obj.cam2boundary_mask] + (scale / obj.pose.vo_scale) *
+            np.ones_like(obj.boundary[:, obj.cam2boundary_mask]) * obj.pose.t.reshape(3, 1)
             for obj in self.list_ly
         ])
 
@@ -31,7 +29,7 @@ class VO_ScaleRecover:
 
         self.list_ly = list_ly
         # ! Scale already applied  to the passed list_ly
-        vo_scale = list_ly[0].pose_est.vo_scale
+        vo_scale = list_ly[0].pose.vo_scale
         scale = min_scale
         self.reset_all()
 

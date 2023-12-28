@@ -3,6 +3,7 @@ path.mp3d_fpe_dir: ./dataset/mp3d_fpe_dir
 data.ly_model: 'hn_mp3d'
 data.ly_scale: 1
 data.vo_scale: 1
+data.use_gt_poses: False
 data.image_resolution: [512, 1024]
 
 #! Plane  Estimation

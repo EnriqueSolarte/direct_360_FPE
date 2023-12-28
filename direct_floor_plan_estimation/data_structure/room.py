@@ -1,6 +1,6 @@
 from .ocg_patch import OCGPatches
-from src.solvers.theta_estimator import ThetaEstimator
-from src.solvers.room_shape_estimator import RoomShapeEstimator
+from direct_floor_plan_estimation.solvers.theta_estimator import ThetaEstimator
+from direct_floor_plan_estimation.solvers.room_shape_estimator import RoomShapeEstimator
 import numpy as np
 
 
@@ -76,7 +76,7 @@ class Room:
         Computes theta orientation using all plane registered
         """
         # return
-        self.room_center = np.mean(np.vstack([ly.pose_est.t for ly in self.list_ly]), axis=0)
+        self.room_center = np.mean(np.vstack([ly.pose.t for ly in self.list_ly]), axis=0)
 
         self.theta_z = self.theta_estimator.estimate_from_list_pl(
             list_pl=self.list_pl,

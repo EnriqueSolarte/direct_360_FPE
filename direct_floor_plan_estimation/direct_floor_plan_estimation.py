@@ -2,10 +2,10 @@ import os
 import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from src.scale_recover import ScaleRecover
-from src.solvers.plane_estimator import PlaneEstimator
-from src.solvers.room_shape_estimator import SPAError
-from src.data_structure import OCGPatches, Room
+from direct_floor_plan_estimation.scale_recover import ScaleRecover
+from direct_floor_plan_estimation.solvers.plane_estimator import PlaneEstimator
+from direct_floor_plan_estimation.solvers.room_shape_estimator import SPAError
+from direct_floor_plan_estimation.data_structure import OCGPatches, Room
 from utils.geometry_utils import find_N_peaks
 from utils.ocg_utils import compute_iou_ocg_map
 from utils.enum import ROOM_STATUS, CAM_REF
@@ -141,7 +141,7 @@ class DirectFloorPlanEstimation:
         selected_rooms = []
         for idx, ocg_room in enumerate(self.global_ocg_patch.list_patches):
             pose_uv = ocg_room.project_xyz_to_uv(
-                xyz_points=layout.pose_est.t.reshape((3, 1))
+                xyz_points=layout.pose.t.reshape((3, 1))
             )
             eval_pose = ocg_room.ocg_map[pose_uv[1, :], pose_uv[0, :]]/ocg_room.ocg_map.max()
 
@@ -217,7 +217,7 @@ class DirectFloorPlanEstimation:
         assert layout.is_initialized, "Layout must be initialized before..."
 
         pose_uv = self.curr_room.local_ocg_patches.project_xyz_to_uv(
-            xyz_points=layout.pose_est.t.reshape((3, 1))
+            xyz_points=layout.pose.t.reshape((3, 1))
         )
         room_ocg_map = np.copy(self.curr_room.local_ocg_patches.ocg_map)
 
@@ -257,7 +257,7 @@ class DirectFloorPlanEstimation:
             if not flag_success:
                 continue
 
-            pl.pose = layout.pose_est
+            pl.pose = layout.pose
             list_pl.append(pl)
 
         layout.list_pl = list_pl

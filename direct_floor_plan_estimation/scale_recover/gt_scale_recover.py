@@ -33,7 +33,7 @@ class GT_ScaleRecover:
             ly.pose_gt.t for ly in scale_recover.dt.list_ly
         ]
         self.st_poses = [
-            ly.pose_est.t for ly in scale_recover.dt.list_ly
+            ly.pose.t for ly in scale_recover.dt.list_ly
         ]
 
         assert self.gt_poses.__len__() == self.st_poses.__len__()

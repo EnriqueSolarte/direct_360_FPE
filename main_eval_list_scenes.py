@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from config import read_config
 from data_manager import DataManager
-from src import DirectFloorPlanEstimation
+from direct_floor_plan_estimation import DirectFloorPlanEstimation
 from utils.visualization.vispy_utils import plot_color_plc
 from utils.enum import CAM_REF
 from utils.data_utils import flatten_lists_of_lists
@@ -71,7 +71,7 @@ def main(config_file, scene_list_file, output_dir):
 
 def get_passed_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--scene_list', type=str, default="./data/scene_list_pilot.txt", help='txt file with a list of scenes')
+    parser.add_argument('--scene_list', type=str, default="./data/all_multiroom_scenes_list.csv", help='txt file with a list of scenes')
     parser.add_argument('--results', type=str, default="./test", help='Output directory for results')
     parser.add_argument('--cfg', type=str, default="./config/config.yaml", help='Config file')
     opt = parser.parse_args()

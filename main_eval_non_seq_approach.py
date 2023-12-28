@@ -1,7 +1,7 @@
 from config import read_config, overwrite_scene_data
 from config.config import overwite_version
 from data_manager import DataManager
-from src import DirectFloorPlanEstimation
+from direct_floor_plan_estimation import DirectFloorPlanEstimation
 from utils.visualization.vispy_utils import plot_color_plc
 from utils.enum import CAM_REF
 import numpy as np

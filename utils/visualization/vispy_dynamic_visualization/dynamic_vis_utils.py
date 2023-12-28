@@ -23,7 +23,7 @@ def plot_dyn_from_list_ly(list_ly):
         )
         vis.pcl_visual_ly.plot_pcl(
             pcl=ly.boundary.T,
-            cam=ly.pose_est.SE3_scaled(), 
+            cam=ly.pose.SE3_scaled(), 
             color=(1, 0, 0),
             size=2
         )

@@ -5,17 +5,16 @@ import numpy as np
 from tqdm import tqdm
 from utils.camera_models.sphere import Sphere
 from utils.enum import *
-from src.data_structure import CamPose
+from direct_floor_plan_estimation.data_structure import CamPose
 from utils.io import read_trajectory, read_ply
 from utils.geometry_utils import get_bearings_from_phi_coords, extend_array_to_homogeneous
-from src.data_structure import Layout
+from direct_floor_plan_estimation.data_structure import Layout
 from skimage.measure import points_in_poly
 import datetime
 import sys
 import yaml
 import matplotlib.pyplot as plt
-
-
+from omegaconf import DictConfig, OmegaConf
 
 class DataManager:
     def __init__(self, cfg):
@@ -150,12 +149,12 @@ class DataManager:
         for idx_kf in tqdm(self.list_kf, desc="Loading Layouts..."):
             idx = self.list_kf.index(idx_kf)
 
-            pose_est = CamPose(self, pose=self.poses_est[idx])
-            pose_est.idx = idx_kf
-
-            pose_gt = CamPose(self, pose=self.poses_gt[idx])
-            pose_gt.idx = idx_kf
-
+            if self.cfg['data.use_gt_poses']:
+                pose = CamPose(self, pose=self.poses_est[idx])
+            else:
+                pose = CamPose(self, pose=self.poses_gt[idx])
+                            
+            pose.idx = idx_kf
             # * Every npy file content data estimated from CNN layout estimation in camera coordinates
             # *(NO WC--> no world coordinates)
             data_ly = np.load(self.list_ly_npy[idx])
@@ -176,9 +175,9 @@ class DataManager:
             pcl = ly_scale * bearings
 
             if cam_ref == CAM_REF.WC_SO3:
-                pcl = pose_est.rot @ pcl
+                pcl = pose.rot @ pcl
             elif cam_ref == CAM_REF.WC:
-                pcl = pose_est.SE3_scaled()[0:3, :] @ extend_array_to_homogeneous(pcl)
+                pcl = pose.SE3_scaled()[0:3, :] @ extend_array_to_homogeneous(pcl)
 
             # > Projecting PCL into zero-plane
             pcl[1, :] = 0  # TODO verify if this is really needed
@@ -186,11 +185,11 @@ class DataManager:
             _, s, _ = np.linalg.svd(cov/(pcl.size - 1))
 
             ly = Layout(self)
+            ly.pose_gt = CamPose(self, pose=self.poses_gt[idx])
             ly.bearings = bearings
             ly.boundary = pcl
-            ly.pose_est = pose_est
-            ly.pose_gt = pose_gt
-            ly.idx = pose_est.idx
+            ly.pose = pose
+            ly.idx = pose.idx
             ly.ly_data = data_ly
             ly.cam_ref = cam_ref
             ly.sigma_ratio = (s[1]/s[0])
