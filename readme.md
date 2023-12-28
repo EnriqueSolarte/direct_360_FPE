@@ -11,6 +11,9 @@ For a quick overview please visit our [website project](https://enriquesolarte.g
 
 ---
 ### News
+
+* **29/12/2023**: Add direct_floor_plan_estimation.v2 to wrapper vo-scale recover for different dataloaders versions e.g [360-MLC](https://github.com/EnriqueSolarte/360-mlc), [MVL-Challenge](https://mvlchallenge.github.io/).
+
 * **28/12/2023**: Add setup.py to the project and rename src folder to direct_floor_plan_estimation for better import-like format.
 
 * **18/05/2023**: Added `pcl.pyl` files to GoogleDrive. Fix issue [#2](https://github.com/EnriqueSolarte/direct_360_FPE/issues/2) 
