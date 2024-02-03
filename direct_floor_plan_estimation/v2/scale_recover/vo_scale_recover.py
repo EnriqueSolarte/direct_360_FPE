@@ -10,8 +10,8 @@ class VO_ScaleRecover:
         self.cfg = cfg
         self.hist_entropy = []
         self.hist_scale = []
-        for key, val in cfg.items():
-            setattr(self, key, val)
+        [setattr(self, key, val) for key, val in cfg.items()]
+        
         
     def reset_all(self):
         self.hist_entropy = []
@@ -81,10 +81,22 @@ class VO_ScaleRecover:
         # best_vo_scale = self.hist_best_scale[idx_min]
         if self.hist_best_entropy.__len__() == 1:
             return self.hist_best_scale[0]
-        w = np.max(self.hist_best_entropy) - np.array(self.hist_best_entropy)
-        w = w / np.sum(w) 
-        return np.sum(np.array(self.hist_best_scale) * w)
-    
+        if self.cfg.get("best_h_func") is None:
+            w = np.max(self.hist_best_entropy) - np.array(self.hist_best_entropy)
+            w = w / np.sum(w) 
+            return np.sum(np.array(self.hist_best_scale) * w)
+        if self.cfg.get("best_h_func") == 'median':
+            return np.median(self.hist_best_scale)
+        elif self.cfg.get("best_h_func") == 'mean':
+            return np.mean(self.hist_best_scale)
+        elif self.cfg.get("best_h_func") == 'max':
+            return np.max(self.hist_best_scale)
+        elif self.cfg.get("best_h_func") == 'min':
+            return np.min(self.hist_best_scale)
+        elif q in self.cfg.get("best_h_func"):
+            quantile = self.cfg.get("best_h_func").split("q")
+            return np.quantile(self.hist_best_scale, float(quantile[-1]))
+        
     
 def get_ocg_map(pcl,
                 grid_size=None,
@@ -181,6 +193,7 @@ def plot_scale_recover_vis(list_ly, scale, grid_size, fn, hist_scale=None, hist_
     plt.draw()
     plt.waitforbuttonpress(0.01)
     plt.savefig(fn)
+    plt.close(fig)
 
 def mask_noisy_points(list_ly):
     distances = np.hstack([ly.cam2boundary for ly in list_ly])

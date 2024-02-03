@@ -1,1 +1,2 @@
 from .scale_recover.vo_scale_recover import VO_ScaleRecover
+from .scale_recover.vo_scale_recover import apply_vo_scale
