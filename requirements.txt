@@ -20,3 +20,5 @@ googledrivedownloader
 scikit-image
 hydra-core
 wandb==0.15.3
+opencv-python
+open3d

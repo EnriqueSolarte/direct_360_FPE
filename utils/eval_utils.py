@@ -92,6 +92,11 @@ def dump_images(images_dict, save_dir):
         plt.imsave(os.path.join(save_dir, f'{scene}_{key}_gt.png'), images_dict[key]['image_gt'])
         plt.imsave(os.path.join(save_dir, f'{scene}_{key}_pred.png'), images_dict[key]['image_pred'])
 
+def dump_fpe_geometry(fpe_geometry_list, save_dir):
+    import pickle
+    fpe_geometry = {'corners_list': fpe_geometry_list}
+    with open(os.path.join(save_dir, "fpe_corners.pkl"), 'wb') as f:
+        pickle.dump(fpe_geometry, f)
 
 def dump_result(result_list, save_dir):
     # Dump result to a csv file

@@ -144,11 +144,12 @@ class ScaleRecover:
         """
 
         self.estimate_vo_scale()
-        self.gt_scale = self.gt_scale_recover.estimate(self)
+        if self.dt.cfg['data.use_gt_poses']:
+            self.gt_scale = self.gt_scale_recover.estimate(self)
 
-        # * We are assuming that by estimating vo and gt scale is because we want to
-        # * apply GT scale
-        [ly.apply_gt_scale(self.gt_scale) for ly in self.dt.list_ly]
+            # * We are assuming that by estimating vo and gt scale is because we want to
+            # * apply GT scale
+            [ly.apply_gt_scale(self.gt_scale) for ly in self.dt.list_ly]
 
         return self.gt_scale, self.vo_scale
 
