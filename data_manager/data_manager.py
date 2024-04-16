@@ -62,12 +62,13 @@ class DataManager:
             # ! List of DepthGT maps
             self.list_depth_maps = [os.path.join(self.mp3d_fpe_scene_dir, f'depth/tiff/{f}.tiff') for f in self.list_kf]
 
-            # ! Load GT floor plan & point cloud
-            self.room_corners, self.axis_corners, self.list_kf_per_room = \
-                self.load_fp_gt(os.path.join(self.mp3d_fpe_scene_dir, 'label.json'))
+            if self.cfg['data.use_gt_poses']:
+                # ! Load GT floor plan & point cloud
+                self.room_corners, self.axis_corners, self.list_kf_per_room = \
+                    self.load_fp_gt(os.path.join(self.mp3d_fpe_scene_dir, 'label.json'))
 
-            # NOTE: pcl_gt is (N, 3) and z-axis is the height
-            self.pcl_gt = read_ply(os.path.join(self.mp3d_fpe_scene_dir, 'pcl.ply'))
+                # NOTE: pcl_gt is (N, 3) and z-axis is the height
+                self.pcl_gt = read_ply(os.path.join(self.mp3d_fpe_scene_dir, 'pcl.ply'))
 
             self.cam = Sphere(shape=self.cfg['data.image_resolution'])
         except:
@@ -88,18 +89,19 @@ class DataManager:
         self.poses_est = np.stack(
             list(read_trajectory(estimated_poses_file).values()))
 
-        # ! Loading GT camera poses
-        gt_poses_file = os.path.join(
-            self.mp3d_fpe_scene_dir,
-            'frm_ref.txt')
+        if self.cfg['data.use_gt_poses']:
+            # ! Loading GT camera poses
+            gt_poses_file = os.path.join(
+                self.mp3d_fpe_scene_dir,
+                'frm_ref.txt')
 
-        assert os.path.isfile(
-            gt_poses_file
-        ), f'Cam pose file {gt_poses_file} does not exist'
+            assert os.path.isfile(
+                gt_poses_file
+            ), f'Cam pose file {gt_poses_file} does not exist'
 
-        idx = np.array(self.list_kf)-1
-        self.poses_gt = np.stack(
-            list(read_trajectory(gt_poses_file).values()))[idx, :, :]
+            idx = np.array(self.list_kf)-1
+            self.poses_gt = np.stack(
+                list(read_trajectory(gt_poses_file).values()))[idx, :, :]
 
     def load_fp_gt(self, fn):
         """
@@ -149,7 +151,7 @@ class DataManager:
         for idx_kf in tqdm(self.list_kf, desc="Loading Layouts..."):
             idx = self.list_kf.index(idx_kf)
 
-            if self.cfg['data.use_gt_poses']:
+            if not self.cfg['data.use_gt_poses']:
                 pose = CamPose(self, pose=self.poses_est[idx])
             else:
                 pose = CamPose(self, pose=self.poses_gt[idx])
@@ -185,7 +187,8 @@ class DataManager:
             _, s, _ = np.linalg.svd(cov/(pcl.size - 1))
 
             ly = Layout(self)
-            ly.pose_gt = CamPose(self, pose=self.poses_gt[idx])
+            if self.cfg['data.use_gt_poses']:
+                ly.pose_gt = CamPose(self, pose=self.poses_gt[idx])
             ly.bearings = bearings
             ly.boundary = pcl
             ly.pose = pose
