@@ -12,6 +12,8 @@ For a quick overview please visit our [website project](https://enriquesolarte.g
 ---
 ### News
 
+* **16/01/2025**: The `mp3d_fpe` dataset has been moved to HuggingFace [EnriqueSolarte/mp3d_fpe](https://huggingface.co/datasets/EnriqueSolarte/mp3d_fpe/tree/main).
+
 * **29/12/2023**: Add direct_floor_plan_estimation.v2 to wrapper vo-scale recover for different dataloaders versions e.g [360-MLC](https://github.com/EnriqueSolarte/360-mlc), [MVL-Challenge](https://mvlchallenge.github.io/).
 
 * **28/12/2023**: Add setup.py to the project and rename src folder to direct_floor_plan_estimation for better import-like format.
@@ -49,9 +51,9 @@ pip install .
 ```
 
 ### Dataset
-The dataset used in this project is our own collected **MP3D-FPE** dataset, which simulates a handled-camera walking through different rooms scenes rendered by [MINOS](https://minosworld.github.io/) simulator with [MP3D](https://niessner.github.io/Matterport/) real-world data. Upon this collected data, we annotate floor plan labels, estimated camera poses uisng OpenVSLAM[4], and estimated layout for each key-frame by HorizonNet[3]. Our dataset offers 360-rgb-images, depth maps, ground truth and estimated camera poses, floor plan labels, and estimated layouts.  
+The dataset used in this project is our own collected **MP3D-FPE** dataset, which simulates a handled-camera walking through different rooms scenes rendered by [MINOS](https://minosworld.github.io/) simulator with [MP3D](https://niessner.github.io/Matterport/) real-world data. Upon this collected data, we annotate floor plan labels, estimated camera poses using OpenVSLAM[4], and estimated layouts for each key-frame by HorizonNet[3]. Our dataset offers 360-rgb-images, depth maps, ground truth and estimated camera poses, floor plan labels, and estimated layouts.  
 
-For convenience, we have hosted the `mp3d_fpe` dataset at HuggingFace site [EnriqueSolarte/mp3d_fpe](https://huggingface.co/datasets/EnriqueSolarte/mp3d_fpe/tree/main). Details to download this dataset is here [mp3d_fpe_dataset](mp3d_fpe_dataset/mp3d_fpe_dataset.md).
+For convenience, the `mp3d_fpe` dataset is hosted at HuggingFace site [EnriqueSolarte/mp3d_fpe](https://huggingface.co/datasets/EnriqueSolarte/mp3d_fpe/tree/main). Details to download this dataset is here [mp3d_fpe_dataset](mp3d_fpe_dataset/mp3d_fpe_dataset.md).
 
 
 ### DISCLAIMER:
