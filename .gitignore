@@ -21,3 +21,4 @@ outputs/
 *.hydra/
 *dependencies/
 *test/
+*results*/

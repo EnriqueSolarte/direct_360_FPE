@@ -58,8 +58,8 @@ class Sphere(Camera):
         u = np.linspace(0, w - 1, w).astype(int)
         v = np.linspace(0, h - 1, h).astype(int)
         uu, vv = np.meshgrid(u, v)
-        self.deafult_pixel = np.vstack((uu.flatten(), vv.flatten(), np.ones((w * h,)))).astype(np.int)
-        self.default_spherical = self.Kinv.dot(self.deafult_pixel)
+        self.default_pixel = np.vstack((uu.flatten(), vv.flatten(), np.ones((w * h,)))).astype(np.int64)
+        self.default_spherical = self.Kinv.dot(self.default_pixel)
         self.default_bearings = self.sphere2bearing(self.default_spherical)
 
     def pixel2euclidean_space(self, pixels):
@@ -122,11 +122,11 @@ class Sphere(Camera):
         if shape is None:
             shape = self.shape
 
-        phi = np.linspace(0, shape[0] - 1, shape[0]).astype(np.int)
-        theta = np.linspace(0, shape[1] - 1, shape[1]).astype(np.int)
+        phi = np.linspace(0, shape[0] - 1, shape[0]).astype(np.int64)
+        theta = np.linspace(0, shape[1] - 1, shape[1]).astype(np.int64)
         tilde_theta, tilde_phi = np.meshgrid(theta, phi)
 
-        return np.hstack([tilde_theta.reshape(-1, 1), tilde_phi.reshape(-1, 1)]).astype(np.int)
+        return np.hstack([tilde_theta.reshape(-1, 1), tilde_phi.reshape(-1, 1)]).astype(np.int64)
 
     def vector_grid(self, grid):
         tilde_theta = grid[0]

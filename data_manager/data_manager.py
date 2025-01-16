@@ -68,9 +68,10 @@ class DataManager:
 
             # NOTE: pcl_gt is (N, 3) and z-axis is the height
             self.pcl_gt = read_ply(os.path.join(self.mp3d_fpe_scene_dir, 'pcl.ply'))
-
             self.cam = Sphere(shape=self.cfg['data.image_resolution'])
-        except:
+
+        except Exception as e:
+            print(f"ERROR: {e}")
             raise ValueError("Data_manager couldn't access to the data..")
 
     def load_camera_poses(self):

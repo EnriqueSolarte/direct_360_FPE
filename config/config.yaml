@@ -1,4 +1,4 @@
-path.mp3d_fpe_dir: ./dataset/mp3d_fpe_dir
+path.mp3d_fpe_dir: /media/datasets/mp3d_fpe/SINGLE_ROOM_SCENES
 
 data.ly_model: 'hn_mp3d'
 data.ly_scale: 1

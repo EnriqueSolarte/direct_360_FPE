@@ -13,6 +13,7 @@ from utils.visualization.room_utils import plot_floor_plan, plot_all_planes, plo
 from utils.eval_utils import evaluate_corners_pr, evaluate_rooms_pr
 from utils.io import read_scene_list
 from utils.eval_utils import evaluate_scene, dump_images, dump_result
+from pathlib import Path
 
 
 def main(config_file, scene_list_file, output_dir):
@@ -29,15 +30,16 @@ def main(config_file, scene_list_file, output_dir):
 
         for ly in list_ly:
             fpe.estimate(ly)
-            
+
         fpe.masking_ocg_map()
         fpe.eval_room_overlapping()
-   
+
         points_gt = fpe.dt.pcl_gt      # (3, N)
 
         room_corner_list = fpe.compute_room_shape_all()
         image_room_id = plot_all_rooms_by_patches(fpe)
-        image_final_fp = plot_floor_plan(room_corner_list, fpe.global_ocg_patch)
+        image_final_fp = plot_floor_plan(
+            room_corner_list, fpe.global_ocg_patch)
         room_corner_list = [x.T for x in room_corner_list]  # Make it (N, 2)
         result_dict, images_dict = evaluate_scene(
             room_corner_list,
@@ -68,16 +70,19 @@ def main(config_file, scene_list_file, output_dir):
         dump_result(all_result, output_dir)
 
 
-
 def get_passed_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--scene_list', type=str, default="./data/all_multiroom_scenes_list.csv", help='txt file with a list of scenes')
-    parser.add_argument('--results', type=str, default="./test", help='Output directory for results')
-    parser.add_argument('--cfg', type=str, default="./config/config.yaml", help='Config file')
+    this_dir = Path(__file__).resolve().parent
+    parser.add_argument('--scene_list', type=str,
+                        default=f"{this_dir}/data/multiroom_scenes_list.csv", help='txt file with a list of scenes')
+    parser.add_argument('--results', type=str, default=f"{this_dir}/dfpe_results",
+                        help='Output directory for results')
+    parser.add_argument('--cfg', type=str,
+                        default=f"{this_dir}/config/config.yaml", help='Config file')
     opt = parser.parse_args()
     return opt
 
 
 if __name__ == '__main__':
     opt = get_passed_args()
-    main(config_file=opt.cfg, scene_list_file=opt.scene_list, output_dir= opt.results )
+    main(config_file=opt.cfg, scene_list_file=opt.scene_list, output_dir=opt.results)

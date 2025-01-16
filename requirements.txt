@@ -11,10 +11,10 @@ scipy
 vispy
 config
 matplotlib
-torch
-tensorboard
+# torch
+# tensorboard
 shapely
-torchvision
+# torchvision
 pyransac3d
 googledrivedownloader
 scikit-image

@@ -35,11 +35,7 @@ Using this **REPO**, you can:
 
 ---
 ### Main Requirements 
-* python                    3.7.7
-* vispy                     0.5.3
-* numpy                     1.18.5 
-* opencv-python             3.4.3.18
-* pandas                    1.0.5 
+* python                    >=3.8
 
 
 ---
@@ -59,13 +55,13 @@ The dataset used in this project is our own collected **MP3D-FPE** dataset, whic
 * [Pilot scenes](https://drive.google.com/drive/folders/1kO_rvAAJ4y4HuBN-PczhMw6Yb1cBPvx7?usp=share_link)
 
 ### DISCLAIMER:
-MP3D-FPE is a collected dataset for the task of floor plan estimation. This dataset is stricly an extension of [MP3D](https://niessner.github.io/Matterport/). Therefore, the data policies and copyrights of this dataset are under the the terms and condition described by [Matterport](https://niessner.github.io/Matterport/#download:~:text=Dataset%20Download,to%20the%20dataset.). 
+MP3D-FPE is a collected dataset for the task of floor plan estimation. This dataset is strictly an extension of [MP3D](https://niessner.github.io/Matterport/). Therefore, the data policies and copyrights of this dataset are under the the terms and condition described by [Matterport](https://niessner.github.io/Matterport/#download:~:text=Dataset%20Download,to%20the%20dataset.). 
 
 
 <!-- ![](https://i.imgur.com/qd80tlW.gif) -->
 ![](https://i.imgur.com/QxyEfdZ.gif)
 
-For convenience, we have prepared a light-set of scenes which can be downloaded by running ```download_mp3d_fpe.py -h```. 
+For convenience, we host the `mp3d_fpe` dataset at HuggingFace site [EnriqueSolarte/mp3d_fpe](https://huggingface.co/datasets/EnriqueSolarte/mp3d_fpe/tree/main).
 <!-- For accessing to the whole dataset, please send us an email to enrique.solarte.pardo@gmail.com, or nthu.vslab@gmail.com. -->
 
 <!-- For more details about our dataset, please see [MP3D-FPE dataset](mp3d_fpe_dataset.md)
@@ -73,7 +69,7 @@ For convenience, we have prepared a light-set of scenes which can be downloaded 
 For running **360-DFPE** using a custom dataset, please see  [Runing 360-DFPE on custom dataset](360_dfpe_in_custom_data.md)
 ### Settings -->
 
-All hyperameter settings are stored in a yaml file at ```./config/config.yaml```. Addtitionally, for practical purposes, we define a data manager class ```DataManager```, which handles the data in the **MP3D-FPE** dataset, i.e., ground truth information, estimated poses, rgb images, etc. The following is a typical initialization of our system:  
+All hyperparameter settings are stored in a yaml file at ```./config/config.yaml```. Addtitionally, for practical purposes, we define a data manager class ```DataManager```, which handles the data in the **MP3D-FPE** dataset, i.e., ground truth information, estimated poses, rgb images, etc. The following is a typical initialization of our system:  
 
 ```py
 from config import read_config
@@ -130,8 +126,8 @@ python main_compute_metadata.py --scene_list ./data/scene_list_pilot.txt --resul
 
 ## Citation
 Please cite our paper for any purpose of usage.
-```
-@ARTICLE{9772341,
+```bibtex
+@article{Solarte2022_DFPE,
   author={Solarte, Bolivar and Liu, Yueh-Cheng and Wu, Chin-Hsuan and Tsai, Yi-Hsuan and Sun, Min},
   journal={IEEE Robotics and Automation Letters}, 
   title={360-DFPE: Leveraging Monocular 360-Layouts for Direct Floor Plan Estimation}, 
@@ -140,7 +136,6 @@ Please cite our paper for any purpose of usage.
   number={3},
   pages={6503-6510},
   doi={10.1109/LRA.2022.3173730}}
-
 ```
 ---
 ### References
